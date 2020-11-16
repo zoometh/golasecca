@@ -1,6 +1,6 @@
 ---
 title: "Golasecca"
-author: "T. Huet, V. Cicolani"
+author: "V. Cicolani, T. Huet"
 date: "11/11/2020"
 output: html_document
 ---
@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(igraph)
 # library(network)
 library(ggplot2)
+library(plotly)
 map1.url <- "https://qgiscloud.com/VGChilde/gic_iiab"
 publi.url <- "https://halshs.archives-ouvertes.fr/halshs-02314978/document"
 ```
@@ -19,7 +20,9 @@ publi.url <- "https://halshs.archives-ouvertes.fr/halshs-02314978/document"
 
 ### Carte
 
-[Golasecca IC IIAB](https://qgiscloud.com/VGChilde/gic_iiab) Plus courts chemins et carrefours intersites théoriques pour la
+[Golasecca IC IIAB](https://qgiscloud.com/VGChilde/gic_iiab) 
+
+Plus courts chemins et carrefours intersites théoriques pour la
 période Golasecca IC-IIAB, entre 670 et 530 av. J.-C.
 Les numéros des cols renvoient à la fig. 2.
 PAO Thomas Huet. Données Veronica Cicolani.
@@ -78,6 +81,9 @@ df.per <- f.a.period("GIC_IIAB")
 # graphe
 g <- graph_from_data_frame(df.per, directed = FALSE, vertices = NULL)
 plot(g,vertex.size = 3,layout = layout.fruchterman.reingold)
+# gp <- ggplotly(g)
+# htmlwidgets::saveWidget(as_widget(gp), "ggplot.html")
+# plot_ly(p)
 ```
 
 ## References
