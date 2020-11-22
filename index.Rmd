@@ -12,8 +12,23 @@ library(igraph)
 # library(network)
 library(ggplot2)
 library(plotly)
+library(dplyr)
 map1.url <- "https://qgiscloud.com/VGChilde/gic_iiab"
 publi.url <- "https://halshs.archives-ouvertes.fr/halshs-02314978/document"
+site.type <- data.frame(nom=c("funeraire","habitat","sanctuaire_depot","indetermine"),
+                        forme=c(""))
+
+
+f.a.period <- function(tab, a.per){
+  # a.per <- "GIC_IIAB"
+  per <- tab[tab[,a.per] > 0,]
+  per <- per[complete.cases(per),]
+  per <- subset(per, select=c("sites","objets",a.per))
+  # GIC_IIAB$GIIAB_IIIA1 <- NULL
+  # GIC_IIAB$GIIIA1_IIIA3 <- NULL
+  # GIC_IIAB$GIIIA3 <- NULL
+  return(per)
+}
 ```
 
 ## Golasecca IC-IIAB
@@ -34,13 +49,8 @@ Distribution en Suisse de la parure Golasecca et de la vaisselle
 métallique (étrusque et de Grande Grèce) par type de site pour la période
 Golasecca IC-IIAB, entre 670 et 530 avant J.-C.
 
-```{r pressure, echo=FALSE}
+```{r pressure, echo=FALSE, warning=FALSE}
 chm <-"F:\\Collaborations et concours\\Colloques, seminaires, articles\\170427 CTHS\\data_12.xlsx"
-# tableau 1
-# data <- readWorksheetFromFile(chm,
-#                               sheet = "europe-ceramiques",
-#                               region = "G1:H522",
-#                               header = TRUE)
 data <- openxlsx::read.xlsx(chm,
                             sheet = "europe-ceramiques",
                             cols = c(7,8),
@@ -49,10 +59,6 @@ data <- openxlsx::read.xlsx(chm,
 colnames(data)[1] <- 'sites'
 colnames(data)[2] <- 'objets'
 # tableau 2
-# chrono <- readWorksheetFromFile(chm,
-#                                 sheet = "europe-ceramiques",
-#                                 region = "Y1:AB522",
-#                                 header = TRUE)
 chrono <- openxlsx::read.xlsx(chm,
                                 sheet = "europe-ceramiques",
                               cols = c(25,26,27,28),
@@ -64,23 +70,60 @@ colnames(chrono)[3] <- 'GIIIA1_IIIA3'
 colnames(chrono)[4] <- 'GIIIA3'
 # associe les tableaux
 tab <- cbind(data,chrono) 
-
-# période 1
-f.a.period <- function(a.per){
-  # a.per <- "GIC_IIAB"
-  per <- tab[tab[,a.per] > 0,]
-  per <- per[complete.cases(per),]
-  per <- subset(per, select=c("sites","objets",a.per))
-  # GIC_IIAB$GIIAB_IIIA1 <- NULL
-  # GIC_IIAB$GIIIA1_IIIA3 <- NULL
-  # GIC_IIAB$GIIIA3 <- NULL
-  return(per)
-}
-df.per <- f.a.period("GIC_IIAB")
-
+# subset
+df.per <- f.a.period(tab, "GIC_IIAB") # période 1
 # graphe
 g <- graph_from_data_frame(df.per, directed = FALSE, vertices = NULL)
-plot(g,vertex.size = 3,layout = layout.fruchterman.reingold)
+# plot(g,vertex.size = 3,layout = layout.fruchterman.reingold)
+# seed(32)
+graph <- graph_from_data_frame(edgelist)
+graph <- g
+L <- layout.fruchterman.reingold(graph)
+vs <- V(graph)
+# TODO: add forme, couleur to vertex
+es <- as.data.frame(get.edgelist(graph))
+Ne <- length(es[1]$V1)
+Xn <- L[,1]
+Yn <- L[,2]
+network <- plot_ly(x = ~Xn,
+                   y = ~Yn,
+                   mode = "markers",
+                   text = vs$name,
+                   hoverinfo = "text") %>%
+  add_markers(
+    y = ~Xn,
+    x = ~Yn,
+    # locations = ~Country,
+    size = 1,
+    color = "#000000",
+    text = vs$name
+    # TODO: aff 'forme' and 'couleur',...
+    # symbol = c(1,2,3),
+    # symbols = c('circle', 'square', 'x', 'triangle')
+  ) 
+# network
+edge_shapes <- list()
+for(i in 1:Ne) {
+  v0 <- es[i,]$V1
+  v1 <- es[i,]$V2
+  edge_shape = list(
+    type = "line",
+    line = list(color = "#030303", width = 0.3),
+    x0 = Xn[match(v0,names(vs))],
+    y0 = Yn[match(v0,names(vs))],
+    x1 = Xn[match(v1,names(vs))],
+    y1 = Yn[match(v1,names(vs))],
+    opacity = 1
+  )
+  edge_shapes[[i]] <- edge_shape
+  }
+network <- layout(
+  network,
+  shapes = edge_shapes,
+  xaxis = list(title = "", showgrid = FALSE, showticklabels = FALSE, zeroline = FALSE),
+  yaxis = list(title = "", showgrid = FALSE, showticklabels = FALSE, zeroline = FALSE)
+) 
+network
 # gp <- ggplotly(g)
 # htmlwidgets::saveWidget(as_widget(gp), "ggplot.html")
 # plot_ly(p)
