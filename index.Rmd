@@ -1,134 +1,335 @@
 ---
 title: "Golasecca"
-author: "V. Cicolani, T. Huet"
-date: "11/11/2020"
+author: "T. Huet, V. Cicolani"
+date: "`r format(Sys.Date())`"
 output: html_document
+
+references:
+- id: CicolaniHuet19
+  title: "Essai de modelisation des echanges et des reseaux de circulation dans les Alpes centrales au premier age du Fer"
+  author:
+  - family: Cicolani
+    given: Véronica
+  - family: Huet
+    given: Thomas
+  container-title: "La conquete de la montagne : des premieres occupations humaines a l'anthropisation du milieu"
+  publisher: "CTHS editions"
+  # page: 15-29
+  type: article-journal
+  issued:
+    year: 2019
+    URL: 'https://halshs.archives-ouvertes.fr/halshs-02314978/document'
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, fig.width = 10, fig.height = 10, fig.align = "center")
 # library(XLConnect)
 library(igraph)
 # library(network)
 library(ggplot2)
 library(plotly)
 library(dplyr)
+library(reshape)
+
+
+chm <-"F:\\Collaborations et concours\\Colloques, seminaires, articles\\170427 CTHS\\data_12.xlsx"
 map1.url <- "https://qgiscloud.com/VGChilde/gic_iiab"
 publi.url <- "https://halshs.archives-ouvertes.fr/halshs-02314978/document"
-site.type <- data.frame(nom=c("funeraire","habitat","sanctuaire_depot","indetermine"),
-                        forme=c(""))
 
+# a single form and various pastel colors
+obj.colors <- data.frame(nom=c("Parure Golasecca","Vaisselle metallique",
+                               "Ceramique grecque","Amphore"),
+                         couleur=c("#abdee6","#ffabab",
+                                   "#ff9cee","#97c1a9"),
+                         rgb=c('rgb(171, 222, 230)','rgb(255, 171, 171)',
+                               'rgb(100, 61.2, 93.3)','rgb(151, 193, 169)'),
+                         stringsAsFactors = F)
+site.type <- data.frame(contexte.site=c("funeraire","habitat","habitat-funeraire",
+                                        "sanctuaire","depot","fluvial",
+                                        "non_rens","indetermine"),
+                        contexte.forme=c("triangle-down","square","cross",
+                                         "triangle","triangle","cross",
+                                         "hexagon","hexagon"),
+                        contexte.couleur=c("#000000","#ff0000","#808080",
+                                           "#ffff00","#ffff00","#ffff00",
+                                           "#00ff00","#00ff00"),
+                        stringsAsFactors = F)
+# functions - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+f.data <- function(chm){
+  # site / ...
+  data <- openxlsx::read.xlsx(chm,
+                              sheet = "europe-ceramiques",
+                              cols = c(7, 8, 13),
+                              # region = "G1:H522",
+                              colNames  = TRUE)
+  colnames(data)[1] <- 'sites'
+  colnames(data)[2] <- 'objets'
+  colnames(data)[3] <- 'contexte.site' 
+  return(data)
+}
+
+f.chrono <- function(chm){
+  # chrono / per
+  chrono <- openxlsx::read.xlsx(chm,
+                                sheet = "europe-ceramiques",
+                                cols = c(25, 26, 27, 28),
+                                colNames = TRUE)
+  chrono <- chrono[-nrow(chrono),] # rm ccalcultaed sums
+  colnames(chrono)[1] <- 'GIC_IIAB'
+  colnames(chrono)[2] <- 'GIIAB_IIIA1'
+  colnames(chrono)[3] <- 'GIIIA1_IIIA3'
+  colnames(chrono)[4] <- 'GIIIA3'
+  return(chrono)
+}
 
 f.a.period <- function(tab, a.per){
+  # return a subset on the period
   # a.per <- "GIC_IIAB"
   per <- tab[tab[,a.per] > 0,]
   per <- per[complete.cases(per),]
-  per <- subset(per, select=c("sites","objets",a.per))
-  # GIC_IIAB$GIIAB_IIIA1 <- NULL
-  # GIC_IIAB$GIIIA1_IIIA3 <- NULL
-  # GIC_IIAB$GIIIA3 <- NULL
-  return(per)
+  per <- subset(per, select=c("sites","objets","contexte.site"))
 }
+
+f.ggraph  <- function(df.per,obj.colors){
+  g <- graph_from_data_frame(df.per, directed = FALSE, vertices = NULL)
+  L <- layout.fruchterman.reingold(g) # spat
+  g <- set.vertex.attribute(g, "degree", value=degree(g))
+  g <- set.vertex.attribute(g, "contexte.site", value=df.per$contexte.site)
+  g <- set.vertex.attribute(g, "contexte.forme", value=df.per$contexte.forme)
+  g <- set.vertex.attribute(g, "contexte.couleur", value=df.per$contexte.couleur)
+  g <- set.vertex.attribute(g, "x", value=L[,1])
+  g <- set.vertex.attribute(g, "y", value=L[,2])
+  for(i in 1:nrow(obj.colors)){
+    # i <- 1
+    id.obj <- match(obj.colors[i,"nom"], get.vertex.attribute(g, "name", index=V(g)))
+    if(!is.na(id.obj)){
+      g <- set.vertex.attribute(g, "contexte.forme", index = c(id.obj), "circle")
+      g <- set.vertex.attribute(g, "contexte.couleur", index = c(id.obj), obj.colors[i,"couleur"])
+    }
+  }
+  es <- as.data.frame(get.edgelist(g),stringsAsFactors = F)
+  # merge with color
+  es <- merge(es, obj.colors, by.x = "V2", by.y="nom",all.x = T)
+  # Ne <- length(es[1]$V1)
+  # Ne <- nrow(es)
+  Xn <- L[,1]
+  Yn <- L[,2]
+  df.nds <- igraph::as_data_frame(g, what="vertices") # to retrieve coordinates
+  # edges
+  edge_shapes <- list()
+  for(i in 1:nrow(es)) {
+    # i <- 48
+    v0 <- es[i,]$V1
+    v1 <- es[i,]$V2
+    edge_shape = list(
+      type = "line",
+      line = list(color = es[i,]$couleur,
+                  width = 1.5),
+      layer='below', # plot below
+      #♦ renversant... x~y
+      x0 = df.nds[df.nds$name == v0,"y"],
+      y0 = df.nds[df.nds$name == v0,"x"],
+      x1 = df.nds[df.nds$name == v1,"y"],
+      y1 = df.nds[df.nds$name == v1,"x"],
+      opacity = 1
+    )
+    edge_shapes[[i]] <- edge_shape
+  }
+  fig <- plot_ly() %>%
+    # nodes
+    layout(shapes = edge_shapes,
+           xaxis = list(title = "",
+                        showgrid = FALSE,
+                        showticklabels = FALSE,
+                        zeroline = FALSE),
+           yaxis = list(title = "",
+                        showgrid = FALSE,
+                        showticklabels = FALSE,
+                        zeroline = FALSE)
+    ) %>%
+    add_markers(
+      y = ~V(g)$x,
+      x = ~V(g)$y,
+      mode = "markers",
+      text = V(g)$name,
+      hoverinfo = "text",
+      # name = ~thm,
+      opacity = 1,
+      marker = list(
+        symbol = V(g)$contexte.forme,
+        size = log2(V(g)$degree*500),
+        color = V(g)$contexte.couleur,
+        opacity = 1,
+        line = list(
+          color = "#000000",
+          width = 1
+        )
+      )
+    )
+  return(fig)
+}
+# TODO: class crosses = no markers
+```
+
+Cette page web reprend les éléments d'un [article paru aux éditions du CTHS](https://halshs.archives-ouvertes.fr/halshs-02314978/document) [@CicolaniHuet19]
+
+# Etude des réseaux
+
+```{r intro, echo=FALSE, warning=FALSE}
+chrono <- f.chrono(chm)
+data <- f.data(chm)
+tab <- cbind(data,chrono) # associe les tableaux
+nb.sites <- length(unique(tab$sites))
+nb.typ.obj <- length(unique(tab$objets))
+nb.typ.sites <- length(unique(tab$contexte.site))
+```
+
+L'étude porte sur `r nb.sites` sites, `r nb.typ.obj` classes d'objets et 4 périodes.
+
+```{r effectifs, echo=FALSE, warning=FALSE, fig.width=8, fig.height= 5, fig.align="center", fig.cap="volume du mobilier étudié"}
+tab.count <- subset(tab, select = c("objets","GIC_IIAB","GIIAB_IIIA1","GIIIA1_IIIA3","GIIIA3"))
+# aggregate(tab.count$GIC_IIAB, by=list(objets=tab.count$objets), FUN=sum)
+tab.count <- aggregate(cbind(tab.count$GIC_IIAB,
+                             tab.count$GIIAB_IIIA1,
+                             tab.count$GIIIA1_IIIA3,
+                             tab.count$GIIIA3),
+                       by=list(Category=tab.count$objets), FUN=sum)
+names(tab.count) <- c("objets","GIC-IIAB","GIIAB-IIIA1","GIIIA1-IIIA3","GIIIA3")
+tab.count.col <- merge(tab.count, obj.colors, by.x="objets", by.y = "nom", all.x= T)
+tab.count.melt <- melt(tab.count,id.vars = "objets")
+# get rgb colors
+tab.count.melt <- merge(tab.count.melt, obj.colors, by.x="objets", by.y = "nom", all.x= T)
+tab.count.melt$lbl <- paste0(tab.count.melt$objets,'<br>n = ',as.character(tab.count.melt$value))
+# figures.prem.sum <- figures.prem.sum[figures.prem.sum$prem != '',] # rm NA
+# figures.prem.sum <- figures.prem.sum[!(figures.prem.sum$prem %in% thm.not.selected),] # rm N
+# merge to get thm fullname and colors
+# figures.prem.sum$lbl <- paste0(figures.prem.sum$thm,'<br>n = ',as.character(figures.prem.sum$n))
+# TODO: colors
+fig.count <- tab.count.melt %>%
+  plot_ly(x = ~variable,
+          y = ~value,
+          type = 'bar', 
+          text = ~lbl,
+          hoverinfo = 'text',
+          hovertext = ~lbl,
+          name = ~objets,
+          color = ~rgb) %>%
+  layout(yaxis = list(title = 'Count'), barmode = 'stack')
+fig.count
+```
+
+Les sites se répartissent en `r nb.typ.sites` types différents
+
+```{r lis.typ.site, echo=FALSE, warning=FALSE, fig.width=3, fig.height= 3, fig.cap="types de sites"}
+plot_ly(
+  site.type,
+  y = 1:nrow(site.type),
+  x = 2,
+  mode = 'text',
+  textfont = list(color = '#000000', size = 12),
+  textposition = 'right',
+  text = site.type$contexte.site) %>%
+  # text = paste0("-   ",site.type$contexte.site)) %>%
+  layout(xaxis = list(title = "",
+                      showgrid = FALSE,
+                      showticklabels = FALSE,
+                      zeroline = FALSE),
+         yaxis = list(title = "",
+                      showgrid = FALSE,
+                      showticklabels = FALSE,
+                      zeroline = FALSE)
+  ) %>%
+  add_markers(
+    y = 1:nrow(site.type),
+    x = 1,
+    mode = "markers",
+    text = site.type$contexte.site,
+    hoverinfo = "text",
+    opacity = 1,
+    marker = list(
+      symbol = site.type$contexte.forme,
+      size = 8,
+      color = site.type$contexte.couleur,
+      opacity = 1,
+      line = list(
+        color = "#000000",
+        width = 1
+      )
+    )
+  ) 
 ```
 
 ## Golasecca IC-IIAB
 
-### Carte
+Distribution du mobilier par type de site par type de site pour la période Golasecca IC-IIAB, entre 670 et 530 avant J.-C.
 
-[Golasecca IC IIAB](https://qgiscloud.com/VGChilde/gic_iiab) 
-
-Plus courts chemins et carrefours intersites théoriques pour la
-période Golasecca IC-IIAB, entre 670 et 530 av. J.-C.
-Les numéros des cols renvoient à la fig. 2.
-PAO Thomas Huet. Données Veronica Cicolani.
-... during the period 
-
-### Graph
-
-Distribution en Suisse de la parure Golasecca et de la vaisselle
-métallique (étrusque et de Grande Grèce) par type de site pour la période
-Golasecca IC-IIAB, entre 670 et 530 avant J.-C.
-
-```{r pressure, echo=FALSE, warning=FALSE}
-chm <-"F:\\Collaborations et concours\\Colloques, seminaires, articles\\170427 CTHS\\data_12.xlsx"
-data <- openxlsx::read.xlsx(chm,
-                            sheet = "europe-ceramiques",
-                            cols = c(7,8),
-                            # region = "G1:H522",
-                            colNames  = TRUE)
-colnames(data)[1] <- 'sites'
-colnames(data)[2] <- 'objets'
-# tableau 2
-chrono <- openxlsx::read.xlsx(chm,
-                                sheet = "europe-ceramiques",
-                              cols = c(25,26,27,28),
-                              colNames = TRUE)
-chrono <- chrono[-nrow(chrono),] # rm ccalcultaed sums
-colnames(chrono)[1] <- 'GIC_IIAB'
-colnames(chrono)[2] <- 'GIIAB_IIIA1'
-colnames(chrono)[3] <- 'GIIIA1_IIIA3'
-colnames(chrono)[4] <- 'GIIIA3'
-# associe les tableaux
-tab <- cbind(data,chrono) 
-# subset
-df.per <- f.a.period(tab, "GIC_IIAB") # période 1
-# graphe
-g <- graph_from_data_frame(df.per, directed = FALSE, vertices = NULL)
-# plot(g,vertex.size = 3,layout = layout.fruchterman.reingold)
-# seed(32)
-graph <- graph_from_data_frame(edgelist)
-graph <- g
-L <- layout.fruchterman.reingold(graph)
-vs <- V(graph)
-# TODO: add forme, couleur to vertex
-es <- as.data.frame(get.edgelist(graph))
-Ne <- length(es[1]$V1)
-Xn <- L[,1]
-Yn <- L[,2]
-network <- plot_ly(x = ~Xn,
-                   y = ~Yn,
-                   mode = "markers",
-                   text = vs$name,
-                   hoverinfo = "text") %>%
-  add_markers(
-    y = ~Xn,
-    x = ~Yn,
-    # locations = ~Country,
-    size = 1,
-    color = "#000000",
-    text = vs$name
-    # TODO: aff 'forme' and 'couleur',...
-    # symbol = c(1,2,3),
-    # symbols = c('circle', 'square', 'x', 'triangle')
-  ) 
-# network
-edge_shapes <- list()
-for(i in 1:Ne) {
-  v0 <- es[i,]$V1
-  v1 <- es[i,]$V2
-  edge_shape = list(
-    type = "line",
-    line = list(color = "#030303", width = 0.3),
-    x0 = Xn[match(v0,names(vs))],
-    y0 = Yn[match(v0,names(vs))],
-    x1 = Xn[match(v1,names(vs))],
-    y1 = Yn[match(v1,names(vs))],
-    opacity = 1
-  )
-  edge_shapes[[i]] <- edge_shape
-  }
-network <- layout(
-  network,
-  shapes = edge_shapes,
-  xaxis = list(title = "", showgrid = FALSE, showticklabels = FALSE, zeroline = FALSE),
-  yaxis = list(title = "", showgrid = FALSE, showticklabels = FALSE, zeroline = FALSE)
-) 
-network
-# gp <- ggplotly(g)
-# htmlwidgets::saveWidget(as_widget(gp), "ggplot.html")
-# plot_ly(p)
+```{r GIC_IIAB, echo=FALSE, warning=FALSE, fig.cap="Golasecca IC-IIAB"}
+chrono <- f.chrono(chm)
+data <- f.data(chm)
+tab <- cbind(data,chrono) # associe les tableaux
+df.per <- f.a.period(tab, "GIC_IIAB") # subset # période 1
+df.per <- merge(df.per,site.type,by="contexte.site",all.x=T) # merge
+df.per <- df.per[, c("sites","objets","contexte.forme","contexte.couleur","contexte.site" )]
+fig <- f.ggraph(df.per,obj.colors)
+fig
 ```
 
-## References
+## Golasecca GIIAB-IIIA1
 
-[Bib](https://halshs.archives-ouvertes.fr/halshs-02314978/document)
+Distribution du mobilier par type de site pour la période Golasecca GIIAB-IIIA1, entre 530 et 460 av. J.-C.
+
+```{r GIIAB_IIIA1, echo=FALSE, warning=FALSE, fig.cap="Golasecca GIIAB-IIIA1"}
+chrono <- f.chrono(chm)
+data <- f.data(chm)
+tab <- cbind(data,chrono) # associe les tableaux
+df.per <- f.a.period(tab, "GIIAB_IIIA1") # subset # période 1
+df.per <- merge(df.per,site.type,by="contexte.site",all.x=T) # merge
+df.per <- df.per[, c("sites","objets","contexte.forme","contexte.couleur","contexte.site" )]
+fig <- f.ggraph(df.per,obj.colors)
+fig
+```
+
+## Golasecca GIIIA1-IIIA3
+
+Distribution du mobilier par type de site pour la période Golasecca GIIIA1-IIIA3, entre 450 et 420 av. J.-C.
+
+```{r GIIIA1_IIIA3, echo=FALSE, warning=FALSE, fig.cap="Golasecca GIIIA1-IIIA3,"}
+chrono <- f.chrono(chm)
+data <- f.data(chm)
+tab <- cbind(data,chrono) # associe les tableaux
+df.per <- f.a.period(tab, "GIIIA1_IIIA3") # subset # période 1
+df.per <- merge(df.per,site.type,by="contexte.site",all.x=T) # merge
+df.per <- df.per[, c("sites","objets","contexte.forme","contexte.couleur","contexte.site" )]
+fig <- f.ggraph(df.per,obj.colors)
+fig
+```
+
+## Golasecca GIIIA3
+
+Distribution du mobilier par type de site pour la période Golasecca GIIIA3, entre 480 et 380 av. J.-C.
+
+```{r GIIIA3, echo=FALSE, warning=FALSE, fig.cap="Golasecca GIIIA3"}
+chrono <- f.chrono(chm)
+data <- f.data(chm)
+tab <- cbind(data,chrono) # associe les tableaux
+df.per <- f.a.period(tab, "GIIIA3") # subset # période 1
+df.per <- merge(df.per,site.type,by="contexte.site",all.x=T) # merge
+df.per <- df.per[, c("sites","objets","contexte.forme","contexte.couleur","contexte.site" )]
+fig <- f.ggraph(df.per,obj.colors)
+fig
+```
+
+# Approche spatiale
+
+La carte **[Golasecca IC-IIAB](https://qgiscloud.com/VGChilde/gic_iiab)** a été déposée sur [QGIS Cloud](https://qgiscloud.com/), une solution *opensource* pour le partage de projets QGIS.
+
+<!-- Plus courts chemins et carrefours intersites théoriques pour la -->
+<!-- période Golasecca IC-IIAB, entre 670 et 530 av. J.-C. -->
+<!-- Les numéros des cols renvoient à la fig. 2. -->
+<!-- PAO Thomas Huet. Données Veronica Cicolani. -->
+<!-- ... during the period  -->
+
+# References
+
+<!-- [Bib](https://halshs.archives-ouvertes.fr/halshs-02314978/document) -->

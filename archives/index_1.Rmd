@@ -1,0 +1,292 @@
+---
+title: "Golasecca"
+author: "V. Cicolani, T. Huet"
+date: "11/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# library(XLConnect)
+library(igraph)
+# library(network)
+library(ggplot2)
+library(plotly)
+library(dplyr)
+
+chm <-"F:\\Collaborations et concours\\Colloques, seminaires, articles\\170427 CTHS\\data_12.xlsx"
+map1.url <- "https://qgiscloud.com/VGChilde/gic_iiab"
+publi.url <- "https://halshs.archives-ouvertes.fr/halshs-02314978/document"
+
+
+
+f.a.period <- function(tab, a.per){
+  # return a subset on the period
+  # a.per <- "GIC_IIAB"
+  per <- tab[tab[,a.per] > 0,]
+  per <- per[complete.cases(per),]
+  per <- subset(per, select=c("sites","objets","contexte.site"))
+}
+```
+
+## Golasecca IC-IIAB
+
+### Carte
+
+[Golasecca IC IIAB](https://qgiscloud.com/VGChilde/gic_iiab) 
+
+Plus courts chemins et carrefours intersites théoriques pour la
+période Golasecca IC-IIAB, entre 670 et 530 av. J.-C.
+Les numéros des cols renvoient à la fig. 2.
+PAO Thomas Huet. Données Veronica Cicolani.
+... during the period 
+
+### Graph
+
+Distribution en Suisse de la parure Golasecca et de la vaisselle
+métallique (étrusque et de Grande Grèce) par type de site pour la période
+Golasecca IC-IIAB, entre 670 et 530 avant J.-C.
+
+```{r pressure, echo=FALSE, warning=FALSE}
+data <- openxlsx::read.xlsx(chm,
+                            sheet = "europe-ceramiques",
+                            cols = c(7, 8, 13),
+                            # region = "G1:H522",
+                            colNames  = TRUE)
+colnames(data)[1] <- 'sites'
+colnames(data)[2] <- 'objets'
+colnames(data)[3] <- 'contexte.site'
+# tableau 2
+chrono <- openxlsx::read.xlsx(chm,
+                                sheet = "europe-ceramiques",
+                              cols = c(25, 26, 27, 28),
+                              colNames = TRUE)
+chrono <- chrono[-nrow(chrono),] # rm ccalcultaed sums
+colnames(chrono)[1] <- 'GIC_IIAB'
+colnames(chrono)[2] <- 'GIIAB_IIIA1'
+colnames(chrono)[3] <- 'GIIIA1_IIIA3'
+colnames(chrono)[4] <- 'GIIIA3'
+# associe les tableaux
+tab <- cbind(data,chrono) 
+# unique(tab$contexte.site)
+df.per <- f.a.period(tab, "GIC_IIAB") # subset # période 1
+# TODO: class crosses = no markers
+site.type <- data.frame(contexte.site=c("funeraire","habitat","habitat-funeraire",
+                                        "sanctuaire","depot","fluvial",
+                                        "non_rens","indetermine"),
+                        contexte.forme=c("triangle-down","square","cross",
+                                         "triangle","triangle","cross",
+                                         "hexagon","hexagon"),
+                        contexte.couleur=c("#000000","#ff0000","#808080",
+                                           "#ffff00","#ffff00","#ffff00",
+                                           "#00ff00","#00ff00"),
+                        stringsAsFactors = F)
+df.per <- merge(df.per,site.type,by="contexte.site",all.x=T) # merge
+df.per <- df.per[, c("sites","objets","contexte.forme","contexte.couleur","contexte.site" )]
+# graphe
+# g <- graph_from_data_frame(df.per, directed = FALSE, vertices = NULL)
+# plot(g,vertex.size = 3,layout = layout.fruchterman.reingold)
+# seed(32)
+# graph <- graph_from_data_frame(edgelist)
+f.ggraph(df.per){
+  g <- graph_from_data_frame(df.per, directed = FALSE, vertices = NULL)
+  L <- layout.fruchterman.reingold(g) # spat
+  g <- set.vertex.attribute(g, "degree", value=degree(g))
+  g <- set.vertex.attribute(g, "contexte.site", value=df.per$contexte.site)
+  g <- set.vertex.attribute(g, "contexte.forme", value=df.per$contexte.forme)
+  g <- set.vertex.attribute(g, "contexte.couleur", value=df.per$contexte.couleur)
+  g <- set.vertex.attribute(g, "x", value=L[,1])
+  g <- set.vertex.attribute(g, "y", value=L[,2])
+}
+
+# objects
+# a single form and various pastel colors
+obj.colors <- data.frame(nom=c("Parure Golasecca","Vaisselle metallique","Ceramique grecque","Amphore"),
+                         couleur=c("#abdee6","#ffabab","#97c1a9","#ff9cee"),
+                         stringsAsFactors = F)
+for(i in 1:nrow(obj.colors)){
+  # i <- 1
+  id.obj <- match(obj.colors[i,"nom"], get.vertex.attribute(g, "name", index=V(g)))
+  if(!is.na(id.obj)){
+    g <- set.vertex.attribute(g, "contexte.forme", index = c(id.obj), "circle")
+    g <- set.vertex.attribute(g, "contexte.couleur", index = c(id.obj), obj.colors[i,"couleur"])
+  }
+}
+# 
+# id.parure.golasecca <- match("Parure Golasecca", get.vertex.attribute(g, "name", index=V(g)))
+# if(!is.na(id.parure.golasecca)){
+#   g <- set.vertex.attribute(g, "contexte.forme", index = c(id.parure.golasecca), "circle")
+#   g <- set.vertex.attribute(g, "contexte.couleur", index = c(id.parure.golasecca), "#abdee6")
+# }
+# id.vaiselle.metallique <- match("Vaisselle metallique", get.vertex.attribute(g, "name", index=V(g)))
+# if(!is.na(id.vaiselle.metallique)){
+#   g <- set.vertex.attribute(g, "contexte.forme", index = c(id.vaiselle.metallique), "circle")
+#   g <- set.vertex.attribute(g, "contexte.couleur", index = c(id.vaiselle.metallique), "#97c1a9")
+# }
+# id.ceramique.grec <- match("Ceramique grecque", get.vertex.attribute(g, "name", index=V(g)))
+# if(!is.na(id.ceramique.grec)){
+#   g <- set.vertex.attribute(g, "contexte.forme", index = c(id.ceramique.grec), "circle")
+#   g <- set.vertex.attribute(g, "contexte.couleur", index = c(id.ceramique.grec), "#ffabab")
+# }
+# id.amphore <- match("Amphore", get.vertex.attribute(g, "name", index=V(g)))
+# if(!is.na(id.amphore)){
+#   g <- set.vertex.attribute(g, "contexte.forme", index = c(id.amphore), "circle")
+#   g <- set.vertex.attribute(g, "contexte.couleur", index = c(id.amphore), "#ff9cee")
+# }
+# spatialization
+vs <- V(g)
+# TODO: add forme, couleur to vertex
+# es <- as.data.frame(get.edgelist(g))
+es <- as.data.frame(get.edgelist(g),stringsAsFactors = F)
+# merge with color
+es <- merge(es, obj.colors, by.x = "V2", by.y="nom",all.x = T)
+# Ne <- length(es[1]$V1)
+Ne <- nrow(es)
+Xn <- L[,1]
+Yn <- L[,2]
+df.nds <- igraph::as_data_frame(g, what="vertices") # to retrieve coordinates
+# edges
+edge_shapes <- list()
+for(i in 1:Ne) {
+  # i <- 48
+  v0 <- es[i,]$V1
+  v1 <- es[i,]$V2
+  edge_shape = list(
+    type = "line",
+    line = list(color = es[i,]$couleur,
+                width = 1.5),
+    layer='below',
+    #♦ renversant... x~y
+    x0 = df.nds[df.nds$name == v0,"y"],
+    y0 = df.nds[df.nds$name == v0,"x"],
+    x1 = df.nds[df.nds$name == v1,"y"],
+    y1 = df.nds[df.nds$name == v1,"x"],
+    opacity = 1
+  )
+  edge_shapes[[i]] <- edge_shape
+}
+
+plot_ly() %>%
+  # nodes
+  layout(shapes = edge_shapes,
+         xaxis = list(title = "",
+                      showgrid = FALSE,
+                      showticklabels = FALSE,
+                      zeroline = FALSE),
+         yaxis = list(title = "",
+                      showgrid = FALSE,
+                      showticklabels = FALSE,
+                      zeroline = FALSE)
+  ) %>%
+  add_markers(
+    y = ~V(g)$x,
+    x = ~V(g)$y,
+    mode = "markers",
+    text = V(g)$name,
+    hoverinfo = "text",
+    opacity = 1,
+    marker = list(
+      symbol = V(g)$contexte.forme,
+      size = log2(V(g)$degree*500),
+      color = V(g)$contexte.couleur,
+      opacity = 1,
+      line = list(
+        color = "#000000",
+        width = 1
+      )
+    )
+  )
+# 
+# 
+# fig <- plot_ly() %>%
+#   # nodes
+#   add_markers(
+#     y = ~V(g)$x,
+#     x = ~V(g)$y,
+#     mode = "markers",
+#     text = V(g)$name,
+#     hoverinfo = "text",
+#     alpha = 1,
+#     marker = list(
+#       symbol = V(g)$contexte.forme,
+#       # size = V(g)$degree,
+#       size = log2(V(g)$degree*500),
+#       color = V(g)$contexte.couleur,
+#       line = list(
+#         color = "#000000",
+#         width = 1
+#       )
+#     )
+#   )
+# fig <- layout(
+#     fig,
+#     shapes = edge_shapes,
+#     xaxis = list(title = "",
+#                  # showgrid = FALSE,
+#                  # showticklabels = FALSE,
+#                  zeroline = FALSE),
+#     yaxis = list(title = "",
+#                  # showgrid = FALSE,
+#                  # showticklabels = FALSE,
+#                  zeroline = FALSE)
+#   )
+# fig
+
+# # edges
+# edge_shapes <- list()
+# for(i in 1:Ne) {
+#   # i <- 1
+#   v0 <- es[i,]$V1
+#   v1 <- es[i,]$V2
+#   edge_shape = list(
+#     type = "line",
+#     line = list(color = es[i,]$couleur,
+#                 width = 1.5),
+#     x0 = Xn[match(v0,names(vs))],
+#     y0 = Yn[match(v0,names(vs))],
+#     x1 = Xn[match(v1,names(vs))],
+#     y1 = Yn[match(v1,names(vs))],
+#     opacity = 1
+#   )
+#   edge_shapes[[i]] <- edge_shape
+# }
+# network <- plot_ly() %>%
+#   add_markers(
+#     y = ~Xn,
+#     x = ~Yn,
+#     mode = "markers",
+#     text = V(g)$name,
+#     hoverinfo = "text",
+#     alpha = 1,
+#     marker = list(
+#       symbol = V(g)$contexte.forme,
+#       # size = V(g)$degree,
+#       size = log2(V(g)$degree*500),
+#       color = V(g)$contexte.couleur,
+#       line = list(
+#         color = "#000000",
+#         width = 1
+#       )
+#     )
+#   )
+# #   layout(
+# #     shapes = edge_shapes,
+# #     xaxis = list(title = "", showgrid = FALSE, showticklabels = FALSE, zeroline = FALSE),
+# #     yaxis = list(title = "", showgrid = FALSE, showticklabels = FALSE, zeroline = FALSE)
+# #   )
+# # network
+# network <- layout(
+#   network,
+#   shapes = edge_shapes,
+#   xaxis = list(title = "", showgrid = FALSE, showticklabels = FALSE, zeroline = FALSE),
+#   yaxis = list(title = "", showgrid = FALSE, showticklabels = FALSE, zeroline = FALSE)
+# ) 
+# network
+# # gp <- ggplotly(g)
+# # htmlwidgets::saveWidget(as_widget(gp), "ggplot.html")
+# # plot_ly(p)
+```
+
+## References
+
+[Bib](https://halshs.archives-ouvertes.fr/halshs-02314978/document)

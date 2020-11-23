@@ -45,3 +45,33 @@ network <- layout(
 )
 
 network
+########################
+tab.count.melt %>%
+  plot_ly(x = ~variable,
+          y = ~value,
+          type = 'bar', 
+          text = ~objets,
+          hoverinfo = 'text',
+          hovertext = ~objets,
+          name = ~objets,
+          # color = ~rgb
+          marker = list(color = tab.count.melt$rgb,
+                        line = list(color = 'rgb(0,0,0)',
+                                    width = 1))
+  ) %>%
+  layout(yaxis = list(title = 'Count'),
+         barmode = 'stack')
+
+tab.count.melt %>% 
+  group_by(objets) %>% 
+  arrange(variable) %>%
+  plot_ly(
+    x = ~variable, 
+    y = ~value, 
+    color= ~rgb,
+    name = ~objets,
+    # colors = ~rgb,
+    type = 'bar') %>% 
+  layout(
+    yaxis = list(title = 'value'), 
+    barmode = 'stack')
