@@ -75,3 +75,30 @@ tab.count.melt %>%
   layout(
     yaxis = list(title = 'value'), 
     barmode = 'stack')
+
+##################
+
+dt <- as.data.frame(matrix(ncol = 13, nrow = 19))
+colnames(dt) <- c("Entity", month.abb)
+
+for (i in 1:nrow(dt)) {
+  dt[i, 1] <- paste("Entity", i, sep="")
+  dt[i, -1] <- floor(runif(12, min=0, max=100))
+}
+
+# assign colors to entities
+
+dt$"EntityColor" <- c("#074263", "#0B5394", "#3D85C6", "#6D9EEB", "#A4C2F4", "#CFE2F3", "#5B0F00", "#85200C", "#A61C00", "#CC4125", "#DD7E6B", "#E6B8AF", "#F8CBAD", "#F4CCCC", "#274E13", "#38761D", "#E06666", "#CC0000", "#20124D")
+
+data.table::melt(tab.count.col) %>%
+  # tab.count.melt %>%
+  plot_ly(x = ~variable,
+          y = ~value,
+          name= ~objets,
+          type = "bar",
+          color = ~couleur,
+          marker = list(colors = ~couleur)
+  ) %>%
+  layout(yaxis = list(title = ""),
+         xaxis = list(title = ""),
+         barmode = 'stack')
