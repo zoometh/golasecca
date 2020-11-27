@@ -206,10 +206,15 @@ f.ggraph  <- function(df.per,obj.colors){
         opacity = 1,
         line = list(
           color = "#000000",
-          width = 1
-        )
-      )
-    )
+          width = 1))) %>% 
+    add_annotations(x = ~x,
+                    y = ~y,
+                    text =  "~sites",
+                    xref = "x",
+                    yref = "y",
+                    yanchor = 'center',
+                    xanchor = 'top',
+                    showarrow = FALSE)
   return(fig)
 }
 # TODO: class crosses = no markers
@@ -328,17 +333,6 @@ Distribution du mobilier par type de site par type de site pour la période Gola
 
 ```{r GIC_IIAB, echo=FALSE, warning=FALSE, fig.cap="Golasecca IC-IIAB"}
 fig <- f.ggraph(df.per,obj.colors)
-
-  add_annotations(x = ~x,
-                  y = ~y,
-                  text =  "~sites",
-                  xref = "x",
-                  yref = "y",
-                  yanchor = 'center',
-                  xanchor = 'top',
-                  showarrow = FALSE)
-
-
 fig
 ```
 
