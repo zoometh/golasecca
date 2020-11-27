@@ -30,7 +30,12 @@ library(ggplot2)
 library(plotly)
 library(dplyr)
 library(reshape)
-
+library(rdflib)
+library(tidyr)
+library(tibble)
+library(jsonld)
+library(knitr)
+library(kableExtra)
 
 chm <-"F:\\Collaborations et concours\\Colloques, seminaires, articles\\170427 CTHS\\data_13.xlsx"
 map1.url <- "https://qgiscloud.com/VGChilde/gic_iiab"
@@ -309,8 +314,14 @@ fig
 #              out_file = "test.png")
 ```
 
+L'étude a porté sur la distribution spatiale des sites et les différents types de mobilier dans ces sites
 
-## Golasecca IC-IIAB
+* [Golasecca IC-IIAB](#IC_IIAB)
+* [Golasecca GIIAB-IIIA1](#IIAB_IIIA1)
+* [Golasecca GIIIA1-IIIA3](#IIIA1_IIIA3)
+* [Golasecca GIIIA3](#GIIIA3)
+
+## Golasecca IC-IIAB {#IC_IIAB}
 
 ```{r spat.sit.IC_IIAB, fig.align="center"}
 # chrono <- f.chrono(chm)
@@ -333,9 +344,9 @@ fig <- f.ggraph(df.per,obj.colors)
 fig
 ```
 
-## Golasecca GIIAB-IIIA1
+## Golasecca GIIAB-IIIA1 {#IIAB_IIIA1}
 
-```{r spat.sit.GIIAB_IIIA1, echo=FALSE}
+```{r spat.sit.IIAB_IIIA1, echo=FALSE}
 htmltools::includeHTML(paste0(getwd(),"/img/site_GIIAB_IIIA1.html"))
 ```
 
@@ -350,9 +361,9 @@ fig <- f.ggraph(df.per,obj.colors)
 fig
 ```
 
-## Golasecca GIIIA1-IIIA3
+## Golasecca GIIIA1-IIIA3 {#IIIA1_IIIA3}
 
-```{r spat.sit.GIIIA1_IIIA3, echo=FALSE}
+```{r spat.sit.IIIA1_IIIA3, echo=FALSE}
 htmltools::includeHTML(paste0(getwd(),"/img/site_GIIIA1_IIIA3.html"))
 ```
 
@@ -367,7 +378,7 @@ fig <- f.ggraph(df.per,obj.colors)
 fig
 ```
 
-## Golasecca GIIIA3
+## Golasecca GIIIA3 {#GIIIA3}
 
 ```{r spat.sit.GIIIA3, echo=FALSE}
 htmltools::includeHTML(paste0(getwd(),"/img/site_GIIIA3.html"))
@@ -384,16 +395,69 @@ fig <- f.ggraph(df.per,obj.colors)
 fig
 ```
 
-# Mappage CIDOC-CRM {#cidoc}
+# Open Science
+
+Basé sur un wed de données décrites sémantiquement (web sémantique). Les objets numériques sont décrits généralement sous la forme de triplets RDF sous la forme: sujet-prédicat-objet (*subject-predicate-object*).
+
+Les données de notre étude peuvent être mises sous la forme d'un graphe RDF. Par exemple pour le site d'Uto-Kulm durant le Golasecca IIAB-IIIA1:
+
+```{r ex, echo=TRUE}
+per <- "GIIAB_IIIA1"
+site <- "Uto-Kulm"
+```
+
+```{r UtoKulm, echo=FALSE, warning=FALSE, fig.cap="Uto-Kulm durant le (GIIAB-IIIA1)"}
+chrono <- f.chrono(chm)
+data <- f.data(chm)
+tab <- cbind(data,chrono) # associe les tableaux
+df.per <- f.a.period(tab,site.type,per) # subset # période 1
+df.per.count <- df.per %>% count(sites, objets)
+df.per.count <- df.per.count[df.per.count$sites == site, ]
+kable(df.per.count,"html") %>%
+kable_styling(full_width = FALSE, position = "center", font_size=12)
+```
+
+Où:
+
+* **sites** = sujet
+* **objets** = prédicat
+* **n** = objet
+
+R offre différents package ([rdflib](https://cran.r-project.org/web/packages/rdflib/vignettes/rdf_intro.html), etc.) permettant de formater les données de l'étude: 
+
+```{r rdf, echo=TRUE}
+# base <- "http://example.com/iris#"
+base <- "https://github.com/zoometh/golasecca/tree/main/img/"
+rdf <- rdf()
+for (i in 1:nrow(df.per.count)){
+  rdf %>% 
+    rdf_add(subject = paste0(base, df.per.count[i,"sites"]), 
+            predicate = paste0(base, df.per.count[i,"objets"]), 
+            object = df.per.count[i,"n"]) 
+}
+rdf
+```
+
+Le graph peut être sérialisé sous le format JSON-LD est actuellement le plus utilisé pour décrire des données web. 
+
+```{r json, echo=TRUE}
+json.name <- paste0(getwd(),"/img/",site,"_",per,".json")
+# create the json
+rdf_serialize(rdf, json.name, "jsonld") 
+```
+
+Ce fichier peut ensuite être lu sur internet:
+
+```{r json.read, echo=TRUE, fig.cap=" JSON"}
+
+```
+
+## Mappage CIDOC-CRM {#cidoc}
 
 L'iso-standard [CIDOC-CRM](https://www.iso.org/standard/34424.html) (*Cultural Heritage Information-Conceptual Reference Model*, ISO 21127) est une ontologie pour la description et l’organisation de l’information liée au patrimoine archéologique et architectural.  
 L'utilisation d'une ontologie permet l'interopérabilité des données et leur référencement sur le web sémantique, comme préconisé par l'*Open Science*.
 
-```{r cidoc, echo=FALSE, warning=FALSE, fig.cap="mappage de la base de données"}
-chrono <- f.chrono(chm)
-data <- f.data(chm)
-tab <- cbind(data,chrono) # associe les tableaux
-```
+
 
 # Diffusion des données {#diff}
 
