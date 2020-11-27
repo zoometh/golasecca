@@ -215,7 +215,7 @@ f.ggraph  <- function(df.per,obj.colors){
 Cette page web reprend les éléments d'un [article paru aux éditions du CTHS](https://halshs.archives-ouvertes.fr/halshs-02314978/document) [@CicolaniHuet19] pour présenter: 
 
 * une [modélisation des échanges dans les Alpes centrales au premier âge du Fer](#etude)  
-* un [*mappage* de la structure de données avec l'iso-standard CIDOC-CRM](#cidoc)  
+* un [formatage des données pour l'Open Science](#openscience)  
 * une première revue des solutions opensource pour la [diffusion des données](#diff)
 
 # Etude des réseaux d'échange {#etude}
@@ -395,9 +395,9 @@ fig <- f.ggraph(df.per,obj.colors)
 fig
 ```
 
-# Open Science
+# Open Science {#openscience}
 
-Basé sur un wed de données décrites sémantiquement (web sémantique). Les objets numériques sont décrits généralement sous la forme de triplets RDF sous la forme: sujet-prédicat-objet (*subject-predicate-object*).
+Basé sur un wed de données décrites sémantiquement (web sémantique). Les objets numériques sont décrits généralement sous la forme de triples RDF sous la forme: sujet-prédicat-objet (*subject-predicate-object*).
 
 Les données de notre étude peuvent être mises sous la forme d'un graphe RDF. Par exemple pour le site d'Uto-Kulm durant le Golasecca IIAB-IIIA1:
 
@@ -426,7 +426,6 @@ Où:
 R offre différents package ([rdflib](https://cran.r-project.org/web/packages/rdflib/vignettes/rdf_intro.html), etc.) permettant de formater les données de l'étude: 
 
 ```{r rdf, echo=TRUE}
-# base <- "http://example.com/iris#"
 base <- "https://github.com/zoometh/golasecca/tree/main/img/"
 rdf <- rdf()
 for (i in 1:nrow(df.per.count)){
@@ -438,25 +437,20 @@ for (i in 1:nrow(df.per.count)){
 rdf
 ```
 
-Le graph peut être sérialisé sous le format JSON-LD est actuellement le plus utilisé pour décrire des données web. 
+Le triple peut être sérialisé sous le format JSON-LD est actuellement le plus utilisé pour décrire des données web. 
 
 ```{r json, echo=TRUE}
 json.name <- paste0(getwd(),"/img/",site,"_",per,".json")
-# create the json
 rdf_serialize(rdf, json.name, "jsonld") 
 ```
 
-Ce fichier peut ensuite être lu sur internet:
+Ce fichier peut ensuite être retrouvé sur internet:
 
-```{r json.read, echo=TRUE, fig.cap=" JSON"}
-
-```
+[https://raw.githubusercontent.com/zoometh/golasecca/main/img/Uto-Kulm_GIIAB_IIIA1.json](https://raw.githubusercontent.com/zoometh/golasecca/main/img/Uto-Kulm_GIIAB_IIIA1.json)
 
 ## Mappage CIDOC-CRM {#cidoc}
 
-L'iso-standard [CIDOC-CRM](https://www.iso.org/standard/34424.html) (*Cultural Heritage Information-Conceptual Reference Model*, ISO 21127) est une ontologie pour la description et l’organisation de l’information liée au patrimoine archéologique et architectural.  
-L'utilisation d'une ontologie permet l'interopérabilité des données et leur référencement sur le web sémantique, comme préconisé par l'*Open Science*.
-
+Les champs et les valeurs de la base de données seront alignées sur le [CIDOC-CRM](https://www.iso.org/standard/34424.html) (*Cultural Heritage Information-Conceptual Reference Model*, ISO 21127), un iso-standard pour la description et l’organisation de l’information liée au patrimoine archéologique et architectural. Son utilisation permet l'interopérabilité des données et leur référencement sur le web sémantique, comme préconisé par l'*Open Science*.
 
 
 # Diffusion des données {#diff}
