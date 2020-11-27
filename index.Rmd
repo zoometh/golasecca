@@ -91,21 +91,26 @@ f.chrono <- function(chm){
   return(chrono)
 }
 
-f.a.period <- function(tab, a.per){
+f.a.period <- function(tab, site.type, a.per){
   # return a subset on the period
   # a.per <- "GIC_IIAB"
   per <- tab[tab[,a.per] > 0,]
   per <- per[complete.cases(per),]
   per <- subset(per, select=c("num", "sites","objets","contexte.site"))
+  per <- merge(per,site.type,by="contexte.site",all.x=T) # merge
+  per <- per[, c("num", "sites","objets","contexte.forme.ply",
+                 "contexte.couleur","contexte.site" )]
+  return(per)
 }
 
 f.ggraph  <- function(df.per,obj.colors){
   ## nodes
-  col.nds <- c("sites","contexte.site","contexte.forme.ply","contexte.couleur")
+  col.nds <- c("sites","num","contexte.site","contexte.forme.ply","contexte.couleur")
   # sites
   nds.sites <- df.per[ ,col.nds]
   # objets
   nds.objets <- data.frame(nom = unique(df.per$objets),
+                           num = unique(df.per$objets),
                            contexte = rep("objet",length(unique(df.per$objets))),
                            forme = rep("circle",length(unique(df.per$objets))),
                            stringsAsFactors = F)
@@ -115,47 +120,23 @@ f.ggraph  <- function(df.per,obj.colors){
   # merge
   nds <- rbind(nds.sites, nds.objets)
   # rm duplicated
-  nds <- nds[!duplicated(nds), ]
+  nds <- nds[!duplicated(nds[ ,"sites"]), ]
   ## edges
   eds <- df.per[,c("sites","objets")]
   # save sums 
   df.eds <- table(eds)
   # rm duplicated
   eds <- eds[!duplicated(eds), ]
-  # g <- graph_from_data_frame(df.per, directed = FALSE, vertices = NULL)
-  # 
-  # actors <- data.frame(name=c("Alice", "Bob", "Cecil", "David",
-  #                             "Esmeralda"),
-  #                      age=c(48,33,45,34,21),
-  #                      gender=c("F","M","F","M","F"))
-  # relations <- data.frame(from=c("Bob", "Cecil", "Cecil", "David",
-  #                                "David", "Esmeralda"),
-  #                         to=c("Alice", "Bob", "Alice", "Alice", "Bob", "Alice"),
-  #                         same.dept=c(FALSE,FALSE,TRUE,FALSE,FALSE,TRUE),
-  #                         friendship=c(4,5,5,2,1,1), advice=c(4,5,5,4,2,3))
   g <- graph_from_data_frame(eds, directed=FALSE, vertices=nds)
   L <- layout.fruchterman.reingold(g) # spat
   g <- set.vertex.attribute(g, "site", value=V(g)$name)
   g <- set.vertex.attribute(g, "degree", value=degree(g))
-  # g <- set.vertex.attribute(g, "contexte.site", value=df.per$contexte.site)
-  # g <- set.vertex.attribute(g, "contexte.forme.ply", value=df.per$contexte.forme.ply)
-  # g <- set.vertex.attribute(g, "contexte.couleur", value=df.per$contexte.couleur)
   g <- set.vertex.attribute(g, "x", value=L[,1])
   g <- set.vertex.attribute(g, "y", value=L[,2])
-  # for(i in 1:nrow(obj.colors)){
-  #   # i <- 1
-  #   id.obj <- match(obj.colors[i,"nom"], get.vertex.attribute(g, "name", index=V(g)))
-  #   if(!is.na(id.obj)){
-  #     g <- set.vertex.attribute(g, "contexte.forme.ply", index = c(id.obj), "circle")
-  #     g <- set.vertex.attribute(g, "contexte.couleur", index = c(id.obj), obj.colors[i,"couleur"])
-  #   }
-  # }
   # igraph::as_data_frame(g, 'vertices') # check vertices
   es <- as.data.frame(get.edgelist(g),stringsAsFactors = F)
   # merge with color
   es <- merge(es, obj.colors, by.x = "V2", by.y="nom",all.x = T)
-  # Ne <- length(es[1]$V1)
-  # Ne <- nrow(es)
   Xn <- L[,1]
   Yn <- L[,2]
   df.nds <- igraph::as_data_frame(g, what="vertices") # to retrieve coordinates
@@ -179,6 +160,7 @@ f.ggraph  <- function(df.per,obj.colors){
     )
     edge_shapes[[i]] <- edge_shape
   }
+  set.seed(41)
   fig <- plot_ly() %>%
     # nodes
     layout(shapes = edge_shapes,
@@ -198,31 +180,40 @@ f.ggraph  <- function(df.per,obj.colors){
       text = V(g)$name,
       hoverinfo = "text",
       # name = ~thm,
-      opacity = 1,
+      # opacity = 1,
       marker = list(
         symbol = V(g)$contexte.forme.ply,
-        size = log2(V(g)$degree*500),
+        # size = log2(V(g)$degree*1000),
+        size = (log(V(g)$degree)+1)*20,
         color = V(g)$contexte.couleur,
-        opacity = 1,
+        opacity = .8,
         line = list(
           color = "#000000",
           width = 1))) %>% 
-    add_annotations(x = ~x,
-                    y = ~y,
-                    text =  "~sites",
-                    xref = "x",
-                    yref = "y",
-                    yanchor = 'center',
-                    xanchor = 'top',
-                    showarrow = FALSE)
+    # renversant
+    add_annotations(x = ~V(g)$y,
+                    y = ~V(g)$x,
+                    text =  paste0("<b>",V(g)$num,"</b>"),
+                    # text =  ~V(g)$num,
+                    font=list(size=8),
+                    # xref = "x",
+                    # yref = "y",
+                    # yanchor = 'center',
+                    # xanchor = 'center',
+                    showarrow = FALSE,
+                    inherit = T)
   return(fig)
 }
 # TODO: class crosses = no markers
 ```
 
-Cette page web reprend les éléments d'un [article paru aux éditions du CTHS](https://halshs.archives-ouvertes.fr/halshs-02314978/document) [@CicolaniHuet19]
+Cette page web reprend les éléments d'un [article paru aux éditions du CTHS](https://halshs.archives-ouvertes.fr/halshs-02314978/document) [@CicolaniHuet19] pour présenter: 
 
-# Etude des réseaux d'échange
+* une [modélisation des échanges dans les Alpes centrales au premier âge du Fer](#etude)  
+* un [*mappage* de la structure de données avec l'iso-standard CIDOC-CRM](#cidoc)  
+* une première revue des solutions opensource pour la [diffusion des données](#diff)
+
+# Etude des réseaux d'échange {#etude}
 
 ```{r intro, echo=FALSE, warning=FALSE}
 chrono <- f.chrono(chm)
@@ -265,7 +256,9 @@ fig.count <- tab.count.melt %>%
           hovertext = ~lbl,
           name = ~objets,
           color = ~rgb) %>%
-  add_annotations(x=period.objets.sums$period, y=period.objets.sums$x,
+  add_annotations(x=period.objets.sums$period,
+                  y=period.objets.sums$x,
+                  # TODO: rm arrow
                   text=period.objets.sums$x) %>%
   layout(yaxis = list(title = 'Count'), barmode = 'stack')
 fig.count
@@ -320,18 +313,22 @@ fig
 ## Golasecca IC-IIAB
 
 ```{r spat.sit.IC_IIAB, fig.align="center"}
-chrono <- f.chrono(chm)
-data <- f.data(chm)
-tab <- cbind(data,chrono) # associe les tableaux
-df.per <- f.a.period(tab, "GIC_IIAB") # subset # période 1
-df.per <- merge(df.per,site.type,by="contexte.site",all.x=T) # merge
-df.per <- df.per[, c("num", "sites","objets","contexte.forme.ply","contexte.couleur","contexte.site" )]
+# chrono <- f.chrono(chm)
+# data <- f.data(chm)
+# tab <- cbind(data,chrono) # associe les tableaux
+# df.per <- f.a.period(tab,site.type,"GIC_IIAB") # subset # période 1
+# df.per <- merge(df.per,site.type,by="contexte.site",all.x=T) # merge
+# df.per <- df.per[, c("num", "sites","objets","contexte.forme.ply","contexte.couleur","contexte.site" )]
 htmltools::includeHTML(paste0(getwd(),"/img/site_GIC_IIAB.html"))
 ```
 
 Distribution du mobilier par type de site par type de site pour la période Golasecca IC-IIAB, entre 670 et 530 avant J.-C.
 
 ```{r GIC_IIAB, echo=FALSE, warning=FALSE, fig.cap="Golasecca IC-IIAB"}
+chrono <- f.chrono(chm)
+data <- f.data(chm)
+tab <- cbind(data,chrono) # associe les tableaux
+df.per <- f.a.period(tab,site.type,"GIC_IIAB") # subset # période 1
 fig <- f.ggraph(df.per,obj.colors)
 fig
 ```
@@ -348,9 +345,7 @@ Distribution du mobilier par type de site pour la période Golasecca GIIAB-IIIA1
 chrono <- f.chrono(chm)
 data <- f.data(chm)
 tab <- cbind(data,chrono) # associe les tableaux
-df.per <- f.a.period(tab, "GIIAB_IIIA1") # subset # période 1
-df.per <- merge(df.per,site.type,by="contexte.site",all.x=T) # merge
-df.per <- df.per[, c("sites","objets","contexte.forme.ply","contexte.couleur","contexte.site" )]
+df.per <- f.a.period(tab,site.type,"GIIAB_IIIA1") # subset # période 1
 fig <- f.ggraph(df.per,obj.colors)
 fig
 ```
@@ -367,9 +362,7 @@ Distribution du mobilier par type de site pour la période Golasecca GIIIA1-IIIA
 chrono <- f.chrono(chm)
 data <- f.data(chm)
 tab <- cbind(data,chrono) # associe les tableaux
-df.per <- f.a.period(tab, "GIIIA1_IIIA3") # subset # période 1
-df.per <- merge(df.per,site.type,by="contexte.site",all.x=T) # merge
-df.per <- df.per[, c("sites","objets","contexte.forme.ply","contexte.couleur","contexte.site" )]
+df.per <- f.a.period(tab,site.type,"GIIIA1_IIIA3") # subset # période 1
 fig <- f.ggraph(df.per,obj.colors)
 fig
 ```
@@ -386,14 +379,27 @@ Distribution du mobilier par type de site pour la période Golasecca GIIIA3, ent
 chrono <- f.chrono(chm)
 data <- f.data(chm)
 tab <- cbind(data,chrono) # associe les tableaux
-df.per <- f.a.period(tab, "GIIIA3") # subset # période 1
-df.per <- merge(df.per,site.type,by="contexte.site",all.x=T) # merge
-df.per <- df.per[, c("sites","objets","contexte.forme.ply","contexte.couleur","contexte.site" )]
+df.per <- f.a.period(tab,site.type,"GIIIA3") # subset # période 1
 fig <- f.ggraph(df.per,obj.colors)
 fig
 ```
 
-# Approche spatiale
+# Mappage CIDOC-CRM {#cidoc}
+
+L'iso-standard [CIDOC-CRM](https://www.iso.org/standard/34424.html) (*Cultural Heritage Information-Conceptual Reference Model*, ISO 21127) est une ontologie pour la description et l’organisation de l’information liée au patrimoine archéologique et architectural.  
+L'utilisation d'une ontologie permet l'interopérabilité des données et leur référencement sur le web sémantique, comme préconisé par l'*Open Science*.
+
+```{r cidoc, echo=FALSE, warning=FALSE, fig.cap="mappage de la base de données"}
+chrono <- f.chrono(chm)
+data <- f.data(chm)
+tab <- cbind(data,chrono) # associe les tableaux
+```
+
+# Diffusion des données {#diff}
+
+## Spatial
+
+### QGIS Cloud
 
 La carte **[Golasecca IC-IIAB](https://qgiscloud.com/VGChilde/gic_iiab)** a été déposée sur [QGIS Cloud](https://qgiscloud.com/), une solution *opensource* pour le partage de projets QGIS.
 
