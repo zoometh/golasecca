@@ -49,8 +49,8 @@ site.type <- data.frame(contexte.site=c("funeraire","habitat","habitat-funeraire
                                         "non_rens","indetermine"),
                         contexte.forme.ply=c("triangle-down","square","cross",
                                              "triangle","triangle","cross",
-                                             "hexagon-dot","hexagon-dot"),
-                        contexte.couleur=c("#000000","#ff0000","#808080",
+                                             "hexagon","hexagon"),
+                        contexte.couleur=c("#848484","#ff0000","#808080",
                                            "#ffff00","#ffff00","#ffff00",
                                            "#00ff00","#00ff00"),
                         stringsAsFactors = F)
@@ -69,6 +69,11 @@ f.data <- function(chm){
   colnames(data)[3] <- 'sites'
   colnames(data)[4] <- 'objets'
   colnames(data)[5] <- 'contexte.site' 
+  # create idfs, alphabetci order
+  idf.sites <- data.frame(sites = sort(unique(data$sites)),
+                          num = 1:length(unique(data$sites)),
+                          stringsAsFactors = F)
+  data <- merge(data, idf.sites, by="sites",all.x=T)
   return(data)
 }
 
@@ -91,27 +96,61 @@ f.a.period <- function(tab, a.per){
   # a.per <- "GIC_IIAB"
   per <- tab[tab[,a.per] > 0,]
   per <- per[complete.cases(per),]
-  per <- subset(per, select=c("sites","objets","contexte.site"))
+  per <- subset(per, select=c("num", "sites","objets","contexte.site"))
 }
 
 f.ggraph  <- function(df.per,obj.colors){
-  g <- graph_from_data_frame(df.per, directed = FALSE, vertices = NULL)
+  ## nodes
+  col.nds <- c("sites","contexte.site","contexte.forme.ply","contexte.couleur")
+  # sites
+  nds.sites <- df.per[ ,col.nds]
+  # objets
+  nds.objets <- data.frame(nom = unique(df.per$objets),
+                           contexte = rep("objet",length(unique(df.per$objets))),
+                           forme = rep("circle",length(unique(df.per$objets))),
+                           stringsAsFactors = F)
+  nds.objets <- merge(nds.objets, obj.colors, by="nom")
+  nds.objets$rgb <- NULL
+  names(nds.objets) <- col.nds
+  # merge
+  nds <- rbind(nds.sites, nds.objets)
+  # rm duplicated
+  nds <- nds[!duplicated(nds), ]
+  ## edges
+  eds <- df.per[,c("sites","objets")]
+  # save sums 
+  df.eds <- table(eds)
+  # rm duplicated
+  eds <- eds[!duplicated(eds), ]
+  # g <- graph_from_data_frame(df.per, directed = FALSE, vertices = NULL)
+  # 
+  # actors <- data.frame(name=c("Alice", "Bob", "Cecil", "David",
+  #                             "Esmeralda"),
+  #                      age=c(48,33,45,34,21),
+  #                      gender=c("F","M","F","M","F"))
+  # relations <- data.frame(from=c("Bob", "Cecil", "Cecil", "David",
+  #                                "David", "Esmeralda"),
+  #                         to=c("Alice", "Bob", "Alice", "Alice", "Bob", "Alice"),
+  #                         same.dept=c(FALSE,FALSE,TRUE,FALSE,FALSE,TRUE),
+  #                         friendship=c(4,5,5,2,1,1), advice=c(4,5,5,4,2,3))
+  g <- graph_from_data_frame(eds, directed=FALSE, vertices=nds)
   L <- layout.fruchterman.reingold(g) # spat
   g <- set.vertex.attribute(g, "site", value=V(g)$name)
   g <- set.vertex.attribute(g, "degree", value=degree(g))
-  g <- set.vertex.attribute(g, "contexte.site", value=df.per$contexte.site)
-  g <- set.vertex.attribute(g, "contexte.forme.ply", value=df.per$contexte.forme.ply)
-  g <- set.vertex.attribute(g, "contexte.couleur", value=df.per$contexte.couleur)
+  # g <- set.vertex.attribute(g, "contexte.site", value=df.per$contexte.site)
+  # g <- set.vertex.attribute(g, "contexte.forme.ply", value=df.per$contexte.forme.ply)
+  # g <- set.vertex.attribute(g, "contexte.couleur", value=df.per$contexte.couleur)
   g <- set.vertex.attribute(g, "x", value=L[,1])
   g <- set.vertex.attribute(g, "y", value=L[,2])
-  for(i in 1:nrow(obj.colors)){
-    # i <- 1
-    id.obj <- match(obj.colors[i,"nom"], get.vertex.attribute(g, "name", index=V(g)))
-    if(!is.na(id.obj)){
-      g <- set.vertex.attribute(g, "contexte.forme.ply", index = c(id.obj), "circle")
-      g <- set.vertex.attribute(g, "contexte.couleur", index = c(id.obj), obj.colors[i,"couleur"])
-    }
-  }
+  # for(i in 1:nrow(obj.colors)){
+  #   # i <- 1
+  #   id.obj <- match(obj.colors[i,"nom"], get.vertex.attribute(g, "name", index=V(g)))
+  #   if(!is.na(id.obj)){
+  #     g <- set.vertex.attribute(g, "contexte.forme.ply", index = c(id.obj), "circle")
+  #     g <- set.vertex.attribute(g, "contexte.couleur", index = c(id.obj), obj.colors[i,"couleur"])
+  #   }
+  # }
+  # igraph::as_data_frame(g, 'vertices') # check vertices
   es <- as.data.frame(get.edgelist(g),stringsAsFactors = F)
   # merge with color
   es <- merge(es, obj.colors, by.x = "V2", by.y="nom",all.x = T)
@@ -221,11 +260,8 @@ fig.count <- tab.count.melt %>%
           hovertext = ~lbl,
           name = ~objets,
           color = ~rgb) %>%
-  # impressive
   add_annotations(x=period.objets.sums$period, y=period.objets.sums$x,
-                  text=period.objets.sums$x,
-                  showarrow=T,
-                  arrowhead=.5) %>%
+                  text=period.objets.sums$x) %>%
   layout(yaxis = list(title = 'Count'), barmode = 'stack')
 fig.count
 ```
@@ -279,19 +315,30 @@ fig
 ## Golasecca IC-IIAB
 
 ```{r spat.sit.IC_IIAB, fig.align="center"}
+chrono <- f.chrono(chm)
+data <- f.data(chm)
+tab <- cbind(data,chrono) # associe les tableaux
+df.per <- f.a.period(tab, "GIC_IIAB") # subset # période 1
+df.per <- merge(df.per,site.type,by="contexte.site",all.x=T) # merge
+df.per <- df.per[, c("num", "sites","objets","contexte.forme.ply","contexte.couleur","contexte.site" )]
 htmltools::includeHTML(paste0(getwd(),"/img/site_GIC_IIAB.html"))
 ```
 
 Distribution du mobilier par type de site par type de site pour la période Golasecca IC-IIAB, entre 670 et 530 avant J.-C.
 
 ```{r GIC_IIAB, echo=FALSE, warning=FALSE, fig.cap="Golasecca IC-IIAB"}
-chrono <- f.chrono(chm)
-data <- f.data(chm)
-tab <- cbind(data,chrono) # associe les tableaux
-df.per <- f.a.period(tab, "GIC_IIAB") # subset # période 1
-df.per <- merge(df.per,site.type,by="contexte.site",all.x=T) # merge
-df.per <- df.per[, c("sites","objets","contexte.forme.ply","contexte.couleur","contexte.site" )]
 fig <- f.ggraph(df.per,obj.colors)
+
+  add_annotations(x = ~x,
+                  y = ~y,
+                  text =  "~sites",
+                  xref = "x",
+                  yref = "y",
+                  yanchor = 'center',
+                  xanchor = 'top',
+                  showarrow = FALSE)
+
+
 fig
 ```
 
