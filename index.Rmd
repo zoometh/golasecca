@@ -2,7 +2,12 @@
 title: "Golasecca"
 author: "T. Huet, V. Cicolani"
 date: "`r format(Sys.Date())`"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
 
 references:
 - id: CicolaniHuet19
@@ -36,6 +41,7 @@ library(tibble)
 library(jsonld)
 library(knitr)
 library(kableExtra)
+library(leaflet)
 
 chm <-"F:\\Collaborations et concours\\Colloques, seminaires, articles\\170427 CTHS\\data_13.xlsx"
 map1.url <- "https://qgiscloud.com/VGChilde/gic_iiab"
@@ -210,6 +216,72 @@ f.ggraph  <- function(df.per,obj.colors){
   return(fig)
 }
 # TODO: class crosses = no markers
+# f.lflt.per(getwd(),tab,"GIC_IIAB") # create leaflet html map 
+f.lflt.per <- function(chm.doss,tab,per){
+  # create leaflet obj for the chef de tribu and sect Me
+  # add the image
+  # chm.doss <- "C:/Users/supernova/Dropbox/My PC (supernova-pc)/Documents/golasecca" ; per <- "GIC_IIAB"
+  tab.per <- tab[tab[,per] > 0,]
+  sit.per <- tab.per[, c("x", "y", "num","sites", "objets", "contexte.site")]
+  sit.per <- sit.per[complete.cases(sit.per), ]
+  sit.per <- sit.per[!duplicated(sit.per), ]
+  sit.per <- na.omit(sit.per)
+
+  leafIcons <- f.leafIcons(sit.per) # cr ions Lf
+  # leaflet(width = "50%") %>%
+  #   setView(lng = sit.per$x, lat = sit.per$y) %>%
+  # aPeriod <- leaflet(data = sit.per,width = "75%") %>%
+  #   addTiles() %>%
+  #   addMarkers(~x, ~y, icon = leafIcons, popup=~sites)
+  paste0(sit.per$num,". ",sit.per$sites,"<br>",sit.per$contexte.site)
+  
+  nhd_wms_url <- "https://basemap.nationalmap.gov/arcgis/services/USGSTopo/MapServer/WmsServer"
+
+  aPeriod <- leaflet("map", data = sit.per, width = "75%", height = "500px") %>%
+    # addTiles() %>%
+    addTiles(group = 'OSM') %>%
+    # addWMSTiles(nhd_wms_url, layers = "0", group='Topo')
+    addProviderTiles(providers$Esri.WorldImagery, group='Topo') %>%
+    addMarkers(~x, ~y,
+               icon = leafIcons,
+               popup=paste0(sit.per$num,". <b>",sit.per$sites,"</b><br>",sit.per$contexte.site),
+               # popup=~sites,
+               # opacity=0.8,
+               label=~num,
+               labelOptions = labelOptions(noHide = T,
+                                           direction = "center",
+                                           textOnly = TRUE,
+                                           style = list(
+                                             # "color" = "red",
+                                             # "font-family" = "serif",
+                                             "font-style" = "bold",
+                                             # "box-shadow" = "3px 3px rgba(0,0,0,0.25)",
+                                             "font-size" = "8px"
+                                             # "border-color" = "rgba(0,0,0,0.5)"
+                                           ))) %>%
+    addLayersControl(
+      baseGroups = c('Topo', 'OSM'))
+        # addScaleBar("map", position = "bottomleft")
+  # htmlwidgets::saveWidget(aPeriod, file=paste0(chm.doss,"/img/site_",per,".html"))
+  return(aPeriod)
+}
+
+f.leafIcons <- function(sit.per){
+  leafIcons <- icons(
+    # leafIcons
+    iconUrl = ifelse(sit.per$contexte.site %in% c('funeraire'),
+                     paste0(getwd(),"/img/s_funeraire.png"),
+                     ifelse(sit.per$contexte.site %in% c('indetermine','non_rens'),
+                            paste0(getwd(),"/img/s_indet.png"),
+                            ifelse(sit.per$contexte.site %in% c('depot','sanctuaire','fluvial'),
+                                   paste0(getwd(),"/img/s_depot.png"),
+                                   ifelse(sit.per$contexte.site %in% c('habitat'),
+                                          paste0(getwd(),"/img/s_habitat.png"), paste0(getwd(),"/img/s_autres.png"))))
+    ),
+    iconWidth = 15, iconHeight = 15
+  )
+  return(leafIcons)
+}
 ```
 
 Cette page web reprend les éléments d'un [article paru aux éditions du CTHS](https://halshs.archives-ouvertes.fr/halshs-02314978/document) [@CicolaniHuet19] pour présenter: 
@@ -332,7 +404,12 @@ Répartition des sites durant le Golasecca IC-IIAB
 # df.per <- f.a.period(tab,site.type,"GIC_IIAB") # subset # période 1
 # df.per <- merge(df.per,site.type,by="contexte.site",all.x=T) # merge
 # df.per <- df.per[, c("num", "sites","objets","contexte.forme.ply","contexte.couleur","contexte.site" )]
-htmltools::includeHTML(paste0(getwd(),"/img/site_GIC_IIAB.html"))
+# htmltools::includeHTML(paste0(getwd(),"/img/site_GIC_IIAB.html"))
+# for(per in c("GIC_IIAB","GIIAB_IIIA1","GIIIA1_IIIA3","GIIIA3")){
+f.lflt.per(getwd(),tab,"GIC_IIAB") # create leaflet html map 
+
+  # f.lflt.per(getwd(),tab,"GIC_IIAB") # create leaflet html map 
+
 ```
 
 Distribution du mobilier par type de site par type de site pour la période Golasecca IC-IIAB
@@ -351,7 +428,8 @@ fig
 Répartition des sites au Golasecca GIIAB-IIIA1
 
 ```{r spat.sit.IIAB_IIIA1, echo=FALSE}
-htmltools::includeHTML(paste0(getwd(),"/img/site_GIIAB_IIIA1.html"))
+# for(per in c("GIC_IIAB","GIIAB_IIIA1","GIIIA1_IIIA3","GIIIA3")){
+f.lflt.per(getwd(),tab,"GIIAB_IIIA1") # create leaflet html map 
 ```
 
 Distribution du mobilier par type de site pour la période Golasecca GIIAB-IIIA1
@@ -370,7 +448,8 @@ fig
 Répartition des sites pour la période Golasecca GIIIA1-IIIA3
 
 ```{r spat.sit.IIIA1_IIIA3, echo=FALSE}
-htmltools::includeHTML(paste0(getwd(),"/img/site_GIIIA1_IIIA3.html"))
+# for(per in c("GIC_IIAB","GIIAB_IIIA1","GIIIA1_IIIA3","GIIIA3")){
+f.lflt.per(getwd(),tab,"GIIIA1_IIIA3") # create leaflet html map 
 ```
 
 Distribution du mobilier par type de site pour la période Golasecca GIIIA1-IIIA3
@@ -389,7 +468,7 @@ fig
 Répartition des sites pour la période Golasecca GIIIA3
 
 ```{r spat.sit.GIIIA3, echo=FALSE}
-htmltools::includeHTML(paste0(getwd(),"/img/site_GIIIA3.html"))
+f.lflt.per(getwd(),tab,"GIIIA3") # create leaflet html map 
 ```
 
 Distribution du mobilier par type de site pour la période Golasecca GIIIA3
