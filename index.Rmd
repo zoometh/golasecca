@@ -42,8 +42,11 @@ library(jsonld)
 library(knitr)
 library(kableExtra)
 library(leaflet)
+library(sf)
+library(sp)
 
 chm <-"F:\\Collaborations et concours\\Colloques, seminaires, articles\\170427 CTHS\\data_13.xlsx"
+chm.sig <-"F:\\Collaborations et concours\\Colloques, seminaires, articles\\170427 CTHS\\SIG"
 map1.url <- "https://qgiscloud.com/VGChilde/gic_iiab"
 publi.url <- "https://halshs.archives-ouvertes.fr/halshs-02314978/document"
 
@@ -217,34 +220,95 @@ f.ggraph  <- function(df.per,obj.colors){
 }
 # TODO: class crosses = no markers
 # f.lflt.per(getwd(),tab,"GIC_IIAB") # create leaflet html map 
+# f.lflt.per <- function(chm.doss,tab,per){
+#   # create leaflet obj for the chef de tribu and sect Me
+#   # add the image
+#   # chm.doss <- "C:/Users/supernova/Dropbox/My PC (supernova-pc)/Documents/golasecca" ; per <- "GIC_IIAB"
+#   tab.per <- tab[tab[,per] > 0,]
+#   sit.per <- tab.per[, c("x", "y", "num","sites", "objets", "contexte.site")]
+#   sit.per <- sit.per[complete.cases(sit.per), ]
+#   sit.per <- sit.per[!duplicated(sit.per), ]
+#   sit.per <- na.omit(sit.per)
+# 
+#   leafIcons <- f.leafIcons(sit.per) # cr ions Lf
+#   # leaflet(width = "50%") %>%
+#   #   setView(lng = sit.per$x, lat = sit.per$y) %>%
+#   # aPeriod <- leaflet(data = sit.per,width = "75%") %>%
+#   #   addTiles() %>%
+#   #   addMarkers(~x, ~y, icon = leafIcons, popup=~sites)
+#   paste0(sit.per$num,". ",sit.per$sites,"<br>",sit.per$contexte.site)
+#   
+#   nhd_wms_url <- "https://basemap.nationalmap.gov/arcgis/services/USGSTopo/MapServer/WmsServer"
+# 
+#   aPeriod <- leaflet("map", data = sit.per, width = "75%", height = "500px") %>%
+#     # addTiles() %>%
+#     addTiles(group = 'OSM') %>%
+#     # addWMSTiles(nhd_wms_url, layers = "0", group='Topo')
+#     addProviderTiles(providers$Esri.WorldImagery, group='Topo') %>%
+#     addMarkers(~x, ~y,
+#                icon = leafIcons,
+#                popup=paste0(sit.per$num,". <b>",sit.per$sites,"</b><br>",sit.per$contexte.site),
+#                # popup=~sites,
+#                # opacity=0.8,
+#                label=~num,
+#                labelOptions = labelOptions(noHide = T,
+#                                            direction = "center",
+#                                            textOnly = TRUE,
+#                                            style = list(
+#                                              # "color" = "red",
+#                                              # "font-family" = "serif",
+#                                              "font-style" = "bold",
+#                                              # "box-shadow" = "3px 3px rgba(0,0,0,0.25)",
+#                                              "font-size" = "8px"
+#                                              # "border-color" = "rgba(0,0,0,0.5)"
+#                                            ))) %>%
+#     addLayersControl(
+#       baseGroups = c('Topo', 'OSM')) %>%
+#         addScaleBar(position = "bottomleft")
+#   # htmlwidgets::saveWidget(aPeriod, file=paste0(chm.doss,"/img/site_",per,".html"))
+#   return(aPeriod)
+# }
+
 f.lflt.per <- function(chm.doss,tab,per){
-  # create leaflet obj for the chef de tribu and sect Me
-  # add the image
-  # chm.doss <- "C:/Users/supernova/Dropbox/My PC (supernova-pc)/Documents/golasecca" ; per <- "GIC_IIAB"
   tab.per <- tab[tab[,per] > 0,]
   sit.per <- tab.per[, c("x", "y", "num","sites", "objets", "contexte.site")]
   sit.per <- sit.per[complete.cases(sit.per), ]
   sit.per <- sit.per[!duplicated(sit.per), ]
   sit.per <- na.omit(sit.per)
-
+  # chemins
+  chemins <- st_read(dsn = chm.sig, layer = "_chemins_merge", quiet = T)
+  wgs84 <- CRS("+proj=longlat +datum=WGS84")
+  chemins <- as(chemins, "Spatial")
+  chemins <- spTransform(chemins, wgs84)
+  chemins.per <- chemins[chemins$layer == per, ]
+  # aire d'etude
+  roi <- st_read(dsn = chm.sig, layer = "_aire_etude", quiet = T)
+  roi <- as(roi, "Spatial")
+  roi <- spTransform(roi, wgs84)
+  
+  
   leafIcons <- f.leafIcons(sit.per) # cr ions Lf
+  
+  # f.leafIcons(sit.per) # cr ions Lf
   # leaflet(width = "50%") %>%
   #   setView(lng = sit.per$x, lat = sit.per$y) %>%
   # aPeriod <- leaflet(data = sit.per,width = "75%") %>%
   #   addTiles() %>%
   #   addMarkers(~x, ~y, icon = leafIcons, popup=~sites)
   paste0(sit.per$num,". ",sit.per$sites,"<br>",sit.per$contexte.site)
-  
   nhd_wms_url <- "https://basemap.nationalmap.gov/arcgis/services/USGSTopo/MapServer/WmsServer"
-
-  aPeriod <- leaflet("map", data = sit.per, width = "75%", height = "500px") %>%
+  aPeriod <- leaflet("map", data = sit.per, width = "100%", height = "600px") %>%
     # addTiles() %>%
     addTiles(group = 'OSM') %>%
+    addProviderTiles(providers$Stamen.TerrainBackground, group='Stamen') %>%
     # addWMSTiles(nhd_wms_url, layers = "0", group='Topo')
     addProviderTiles(providers$Esri.WorldImagery, group='Topo') %>%
+    addPolygons(data = roi, color = "black", fillOpacity = 0, opacity = .7, weight = 3) %>%
+    addPolylines(data = chemins.per, color = "red", opacity = .2, weight = 2) %>%
     addMarkers(~x, ~y,
                icon = leafIcons,
-               popup=paste0(sit.per$num,". <b>",sit.per$sites,"</b><br>",sit.per$contexte.site),
+               popup=paste0(sit.per$num,". <b>",sit.per$sites,"</b><br>",
+                            sit.per$contexte.site),
                # popup=~sites,
                # opacity=0.8,
                label=~num,
@@ -259,10 +323,10 @@ f.lflt.per <- function(chm.doss,tab,per){
                                              "font-size" = "8px"
                                              # "border-color" = "rgba(0,0,0,0.5)"
                                            ))) %>%
+    addControl(per, position = "topright") %>%
     addLayersControl(
-      baseGroups = c('Topo', 'OSM'))
-        # addScaleBar("map", position = "bottomleft")
-  # htmlwidgets::saveWidget(aPeriod, file=paste0(chm.doss,"/img/site_",per,".html"))
+      baseGroups = c('Stamen', 'Topo', 'OSM')) %>%
+    addScaleBar(position = "bottomleft")
   return(aPeriod)
 }
 
@@ -386,6 +450,8 @@ fig
 #              out_file = "test.png")
 ```
 
+# Evolution au cours du Golasecca
+
 L'étude a porté sur la distribution spatiale des sites et les différents types de mobilier dans ces sites
 
 * [Golasecca IC-IIAB](#IC_IIAB)
@@ -393,9 +459,9 @@ L'étude a porté sur la distribution spatiale des sites et les différents type
 * [Golasecca GIIIA1-IIIA3](#IIIA1_IIIA3)
 * [Golasecca GIIIA3](#GIIIA3)
 
-## Golasecca IC-IIAB  (670-530 avant J.-C.) {#IC_IIAB}
+## Golasecca IC-IIAB {#IC_IIAB}
 
-Répartition des sites durant le Golasecca IC-IIAB
+Répartition des sites durant le Golasecca IC-IIAB (670-530 avant J.-C.)
 
 ```{r spat.sit.IC_IIAB, fig.align="center"}
 # chrono <- f.chrono(chm)
@@ -408,13 +474,13 @@ Répartition des sites durant le Golasecca IC-IIAB
 # for(per in c("GIC_IIAB","GIIAB_IIIA1","GIIIA1_IIIA3","GIIIA3")){
 f.lflt.per(getwd(),tab,"GIC_IIAB") # create leaflet html map 
 
-  # f.lflt.per(getwd(),tab,"GIC_IIAB") # create leaflet html map 
+# f.lflt.per(getwd(),tab,"GIC_IIAB") # create leaflet html map 
 
 ```
 
 Distribution du mobilier par type de site par type de site pour la période Golasecca IC-IIAB
 
-```{r GIC_IIAB, echo=FALSE, warning=FALSE, fig.cap="Golasecca IC-IIAB"}
+```{r GIC_IIAB, echo=FALSE, warning=FALSE, out.width="75%", fig.cap="Golasecca IC-IIAB"}
 chrono <- f.chrono(chm)
 data <- f.data(chm)
 tab <- cbind(data,chrono) # associe les tableaux
@@ -423,9 +489,9 @@ fig <- f.ggraph(df.per,obj.colors)
 fig
 ```
 
-## Golasecca GIIAB-IIIA1 (530-460 av. J.-C.) {#IIAB_IIIA1}
+## Golasecca GIIAB-IIIA1 {#IIAB_IIIA1}
 
-Répartition des sites au Golasecca GIIAB-IIIA1
+Répartition des sites au Golasecca GIIAB-IIIA1 (530-460 av. J.-C.)
 
 ```{r spat.sit.IIAB_IIIA1, echo=FALSE}
 # for(per in c("GIC_IIAB","GIIAB_IIIA1","GIIIA1_IIIA3","GIIIA3")){
@@ -443,9 +509,9 @@ fig <- f.ggraph(df.per,obj.colors)
 fig
 ```
 
-## Golasecca GIIIA1-IIIA3 (450-420 av. J.-C.) {#IIIA1_IIIA3}
+## Golasecca GIIIA1-IIIA3 {#IIIA1_IIIA3}
 
-Répartition des sites pour la période Golasecca GIIIA1-IIIA3
+Répartition des sites pour la période Golasecca GIIIA1-IIIA3 (450-420 av. J.-C.)
 
 ```{r spat.sit.IIIA1_IIIA3, echo=FALSE}
 # for(per in c("GIC_IIAB","GIIAB_IIIA1","GIIIA1_IIIA3","GIIIA3")){
@@ -463,9 +529,9 @@ fig <- f.ggraph(df.per,obj.colors)
 fig
 ```
 
-## Golasecca GIIIA3 (480-380 av. J.-C.) {#GIIIA3}
+## Golasecca GIIIA3 {#GIIIA3}
 
-Répartition des sites pour la période Golasecca GIIIA3
+Répartition des sites pour la période Golasecca GIIIA3 (480-380 av. J.-C.)
 
 ```{r spat.sit.GIIIA3, echo=FALSE}
 f.lflt.per(getwd(),tab,"GIIIA3") # create leaflet html map 
@@ -495,7 +561,7 @@ df.per <- f.a.period(tab, site.type, per) # sélection sur la période
 df.per.count <- df.per %>% count(sites, objets)
 df.per.count <- df.per.count[df.per.count$sites == site, ]
 kable(df.per.count,"html") %>%
-kable_styling(full_width = FALSE, position = "center", font_size=12)
+  kable_styling(full_width = FALSE, position = "center", font_size=12)
 ```
 
 Où:
