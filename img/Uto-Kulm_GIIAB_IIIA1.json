@@ -1,5 +1,11 @@
 {
-  "@id": "https://github.com/zoometh/golasecca/tree/main/img/Uto-Kulm",
-  "https://github.com/zoometh/golasecca/tree/main/img/Ceramique\\u0020grecque": "2",
-  "https://github.com/zoometh/golasecca/tree/main/img/Parure\\u0020Golasecca": "1"
+  "@id": "https://github.com/zoometh/golasecca/tree/main/LOD/Uto-Kulm",
+  "https://github.com/zoometh/golasecca/tree/main/LOD/Ceramique\\u0020grecque": {
+    "@type": "http://www.w3.org/2001/XMLSchema#integer",
+    "@value": "2"
+  },
+  "https://github.com/zoometh/golasecca/tree/main/LOD/Parure\\u0020Golasecca": {
+    "@type": "http://www.w3.org/2001/XMLSchema#integer",
+    "@value": "1"
+  }
 }

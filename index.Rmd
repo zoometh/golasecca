@@ -51,12 +51,28 @@ map1.url <- "https://qgiscloud.com/VGChilde/gic_iiab"
 publi.url <- "https://halshs.archives-ouvertes.fr/halshs-02314978/document"
 
 # a single form and various pastel colors
-obj.colors <- data.frame(nom=c("Parure Golasecca","Vaisselle metallique",
-                               "Ceramique grecque","Amphore"),
-                         couleur=c("#abdee6","#ffabab",
-                                   "#ff9cee","#97c1a9"),
-                         rgb=c('rgb(171, 222, 230)','rgb(255, 171, 171)',
-                               'rgb(100, 61.2, 93.3)','rgb(151, 193, 169)'),
+periodes.df <- data.frame(periodes = c("GIC_IIAB","GIIAB_IIIA1","GIIIA1_IIIA3","GIIIA3"),
+                          periodes.url = c("IC_IIAB","IIAB_IIIA1","IIIA1_IIIA3","IIIA3"),
+                          periodes.lbl = c("IC-IIAB", "IIAB-IIIA1", "IIIA1-IIIA3", "IIIA3"),
+                          nom.periodes = paste0("Golasecca ", 
+                                                c("IC-IIAB", "IIAB-IIIA1", "IIIA1-IIIA3", "IIIA3")),
+                          tpq = c(-670, -530, -450, -420),
+                          taq = c(-530, -450, -380, -380),
+                          colors = c('rgb(0, 0, 249)', 'rgb(45, 45, 255)',
+                                     'rgb(96, 96, 255)', 'rgb(147, 147, 255)'),
+                          stringsAsFactors = F)
+obj.colors <- data.frame(nom=c("Parure Golasecca",
+                               "Vaisselle metallique",
+                               "Ceramique grecque",
+                               "Amphore"),
+                         couleur=c("#9f9cf7", # bleu
+                                   "#abffab", # vert
+                                   "#f79cf4", # rose
+                                   "#ffffab"), # jaune
+                         rgb=c('rgb(159, 156, 247)',
+                               'rgb(171, 255, 171)',
+                               'rgb(247, 156, 244)',
+                               'rgb(255, 255, 171)'),
                          stringsAsFactors = F)
 site.type <- data.frame(contexte.site=c("funeraire","habitat","habitat-funeraire",
                                         "sanctuaire","depot","fluvial",
@@ -348,11 +364,9 @@ f.leafIcons <- function(sit.per){
 }
 ```
 
-Cette page web reprend les éléments d'un [article paru aux éditions du CTHS](https://halshs.archives-ouvertes.fr/halshs-02314978/document) [@CicolaniHuet19] pour présenter: 
+Cette page web reprend les éléments d'un [article paru aux éditions du CTHS](https://halshs.archives-ouvertes.fr/halshs-02314978/document) [@CicolaniHuet19]. Adossée au colloque du CTHS [*La conquête de la montagne : des premières occupations humaines à l’anthropisation du milieu*](https://cths.fr/ed/edition.php?id=7737), notre étude portait sur la distribution spatiale et les liens entre différentes classes de mobilier au cours du premier âge du Fer dans les Alpes centrales. Notre intention était de faire un essai de modélisation des réseaux d'échanges en nous servant de deux heuristiques: le réseau des plus courts chemins théorique et la modélisation des présences/absences de tel ou tel type de mobilier avec le tracé de graphes. Cette modélisation nous avait permis de synthétiser l'information portant sur plus de 250 sites et 2,000 objets. 
 
-* une [modélisation des échanges dans les Alpes centrales au premier âge du Fer](#etude)  
-* un [formatage des données pour l'Open Science](#openscience)  
-* une première revue des solutions opensource pour la [diffusion des données](#diff)
+Nous avons voulu poursuivre cette modélisation en développant les aspects web et interactifs. Cette page web est issue d'un document *opensource* [Rmarkdown](https://rmarkdown.rstudio.com/) hebergé sur [GitHub](https://github.com/). Nous y reprenons des [éléments de notre étude](#etude) et nous nous intéressons à comment nos résultats peuvent être référencés, rendus accessibles, rendus interopérables et réutilisables dans un contexte de développement de l' [Open Science](#openscience)  
 
 # Etude des réseaux d'échange {#etude}
 
@@ -362,13 +376,27 @@ data <- f.data(chm)
 tab <- cbind(data,chrono) # associe les tableaux
 nb.sites <- length(unique(tab$sites))
 nb.typ.obj <- length(unique(tab$objets))
+obj.personnels <- unique(tab$objets)[1]
+obj.collectifs <- paste0(unique(tab$objets)[2:4], collapse = ", ")
 nb.typ.sites <- length(unique(tab$contexte.site))
+nb.periodes <- nrow(periodes.df)
+Gdebut <- min(periodes.df$tpq)
+Gfin <- max(periodes.df$taq)
 ```
 
-L'étude porte sur `r nb.sites` sites, `r nb.typ.obj` classes d'objets et 4 périodes.
+L'étude porte sur la distribution de deux principales classes d’objets : 
 
-```{r effectifs, echo=FALSE, warning=FALSE, fig.width=8, fig.height= 5, fig.align="center", fig.cap="volume du mobilier étudié"}
-tab.count <- subset(tab, select = c("objets","GIC_IIAB","GIIAB_IIIA1","GIIIA1_IIIA3","GIIIA3"))
+* classe ***'`r obj.personnels`'***: les parures nord-italiques de type Golasecca, objets ordinaires et personnels issus d’interactions à courte et moyenne distance
+
+* classe: ***'`r obj.collectifs`'***: les importations méditerranéennes, objets à valeur ajoutée liés à des réseaux collectifs agissant à plus longue distance
+  
+
+```{r effectifs, echo=FALSE, warning=FALSE, fig.width=8, fig.height= 5, fig.align="center"}
+# TODO add href in x axis
+lbl.href.per <- paste0("<a href = 'https://zoometh.github.io/golasecca/#",
+                       periodes.df$periodes.url,"'>",
+                       periodes.df$periodes.lbl,"</a>")
+tab.count <- subset(tab, select = c("objets", periodes.df$periodes))
 tab.count[is.na(tab.count)] <- 0
 # aggregate(tab.count$GIC_IIAB, by=list(objets=tab.count$objets), FUN=sum)
 tab.count <- aggregate(cbind(tab.count$GIC_IIAB,
@@ -376,7 +404,7 @@ tab.count <- aggregate(cbind(tab.count$GIC_IIAB,
                              tab.count$GIIIA1_IIIA3,
                              tab.count$GIIIA3),
                        by=list(Category=tab.count$objets), FUN=sum)
-names(tab.count) <- c("objets","GIC-IIAB","GIIAB-IIIA1","GIIIA1-IIIA3","GIIIA3")
+names(tab.count) <- c("objets","IC-IIAB","IIAB-IIIA1","IIIA1-IIIA3","IIIA3")
 tab.count.col <- merge(tab.count, obj.colors, by.x="objets", by.y = "nom", all.x= T)
 tab.count.melt <- melt(tab.count,id.vars = "objets")
 # get rgb colors
@@ -387,7 +415,12 @@ tab.count.melt$lbl <- paste0(tab.count.melt$objets,'<br>n = ',as.character(tab.c
 # merge to get thm fullname and colors
 # figures.prem.sum$lbl <- paste0(figures.prem.sum$thm,'<br>n = ',as.character(figures.prem.sum$n))
 # TODO: colors
-period.objets.sums <- aggregate(tab.count.melt$value, by=list(period=tab.count.melt$variable), FUN=sum)
+# couleur=c("#abdee6", # bleu
+#           "#99e8a8", # vert
+#           "#f76565", # rouge
+#           "#f79cf4"), # rose
+period.objets.sums <- aggregate(tab.count.melt$value, 
+                                by=list(period=tab.count.melt$variable), FUN=sum)
 fig.count <- tab.count.melt %>%
   plot_ly(x = ~variable,
           y = ~value,
@@ -396,16 +429,19 @@ fig.count <- tab.count.melt %>%
           hoverinfo = 'text',
           hovertext = ~lbl,
           name = ~objets,
-          color = ~rgb) %>%
+          marker = list(color = ~rgb)) %>%
+          # color = ~rgb) %>%
   add_annotations(x=period.objets.sums$period,
                   y=period.objets.sums$x,
                   # TODO: rm arrow
                   text=period.objets.sums$x) %>%
-  layout(yaxis = list(title = 'Count'), barmode = 'stack')
+  layout(yaxis = list(title = 'nb total d\'objets'), 
+         xaxis = list(title = "phases"), 
+         barmode = 'stack')
 fig.count
 ```
 
-Les sites se répartissent en `r nb.typ.sites` types différents
+L'étude porte sur `r nb.sites` sites appartenant à `r nb.typ.sites` types différents
 
 ```{r lis.typ.site, echo=FALSE, warning=FALSE, fig.width=3, fig.height= 3, fig.cap="types de sites"}
 fig <- plot_ly(
@@ -415,7 +451,7 @@ fig <- plot_ly(
   mode = 'text',
   textfont = list(color = '#000000', size = 12),
   textposition = 'right',
-  text = site.type$contexte.site) %>%
+  text = paste0("  -", site.type$contexte.site)) %>%
   # text = paste0("-   ",site.type$contexte.site)) %>%
   layout(xaxis = list(title = "",
                       showgrid = FALSE,
@@ -424,8 +460,7 @@ fig <- plot_ly(
          yaxis = list(title = "",
                       showgrid = FALSE,
                       showticklabels = FALSE,
-                      zeroline = FALSE)
-  ) %>%
+                      zeroline = FALSE)) %>%
   add_markers(
     y = 1:nrow(site.type),
     x = 1,
@@ -452,12 +487,48 @@ fig
 
 # Evolution au cours du Golasecca
 
-L'étude a porté sur la distribution spatiale des sites et les différents types de mobilier dans ces sites
+Le Golasecca couvre la période `r Gdebut` à `r Gfin` avant J.-C. Cette période a été divisées en `r nb.periodes` phases:
 
-* [Golasecca IC-IIAB](#IC_IIAB)
-* [Golasecca GIIAB-IIIA1](#IIAB_IIIA1)
-* [Golasecca GIIIA1-IIIA3](#IIIA1_IIIA3)
-* [Golasecca GIIIA3](#GIIIA3)
+<!-- * [Golasecca IC-IIAB](#IC_IIAB) -->
+<!-- * [Golasecca IIAB-IIIA1](#IIAB_IIIA1) -->
+<!-- * [Golasecca IIIA1-IIIA3](#IIIA1_IIIA3) -->
+<!-- * [Golasecca IIIA3](#GIIIA3) -->
+
+```{r phasage, fig.height=2, echo=FALSE, warning=FALSE, fig.cap="Phasage de la période Golasecca"}
+lbl.href.per <- paste0("<a href = 'https://zoometh.github.io/golasecca/#",
+                       periodes.df$periodes.url,"'><b>",
+                       periodes.df$periodes.lbl,"</b></a><br>",
+                       abs(periodes.df$tpq),"-",abs(periodes.df$taq)," ANE")
+per1 <- c(rep(periodes.df[1,"tpq"],2),rep(periodes.df[1,"taq"],2))
+per2 <- c(rep(periodes.df[2,"tpq"],2),rep(periodes.df[2,"taq"],2))
+per3 <- c(rep(periodes.df[3,"tpq"],2),rep(periodes.df[3,"taq"],2))
+per4 <- c(rep(periodes.df[4,"tpq"],2),rep(periodes.df[4,"taq"],2))
+plot_ly() %>% 
+  add_polygons(x=c(per1,per2,per3,per4),
+               # x=c(periodes.df$tpq, periodes.df$tpq, periodes.df$taq, periodes.df$taq),
+               y=rep(c(0,1,1,0), 4),
+               line=list(width=1)
+  ) %>%
+  add_annotations(x = c(mean(per1),mean(per2),mean(per3),mean(per4)),
+                  y = c(rep(.5, 2), .3, .7),
+                  text = lbl.href.per,
+                  # text = paste0("<b>",periodes.df$periodes.lbl,"</b><br>",
+                  #               abs(periodes.df$tpq),"-",abs(periodes.df$taq)," ANE"),
+                  font=list(size=12),
+                  showarrow = FALSE,
+                  inherit = T) %>%
+  layout(yaxis = list(title = "",
+                      showgrid = FALSE,
+                      showticklabels = FALSE,
+                      zeroline = FALSE))
+
+```
+
+Pour chacune de ces phases nous présentons:
+
+* une carte [Leaflet](https://rstudio.github.io/leaflet/) avec l'aire d'étude (la Suisse), les sites datés de cette phase, les plus courts chemins téhoriques reliant un site à tous les autres. Les chemins plutôt transparent sont théoriquement peu empruntés, les chemins non transparents sont théoriquement très empruntés
+
+* un tracé de graphe [Plotly](https://plotly.com/r/) montrant quels types de mobilier ont été trouvés dans les sites datés de cette phase, et comment à travers la présence de ce mobilier, les sites sont connectés entre eux
 
 ## Golasecca IC-IIAB {#IC_IIAB}
 
@@ -489,7 +560,7 @@ fig <- f.ggraph(df.per,obj.colors)
 fig
 ```
 
-## Golasecca GIIAB-IIIA1 {#IIAB_IIIA1}
+## Golasecca IIAB-IIIA1 {#IIAB_IIIA1}
 
 Répartition des sites au Golasecca GIIAB-IIIA1 (530-460 av. J.-C.)
 
@@ -498,9 +569,9 @@ Répartition des sites au Golasecca GIIAB-IIIA1 (530-460 av. J.-C.)
 f.lflt.per(getwd(),tab,"GIIAB_IIIA1") # create leaflet html map 
 ```
 
-Distribution du mobilier par type de site pour la période Golasecca GIIAB-IIIA1
+Distribution du mobilier par type de site pour la période Golasecca IIAB-IIIA1
 
-```{r GIIAB_IIIA1, echo=FALSE, warning=FALSE, fig.cap="Golasecca GIIAB-IIIA1"}
+```{r GIIAB_IIIA1, echo=FALSE, warning=FALSE, fig.cap="Golasecca IIAB-IIIA1"}
 chrono <- f.chrono(chm)
 data <- f.data(chm)
 tab <- cbind(data,chrono) # associe les tableaux
@@ -509,7 +580,7 @@ fig <- f.ggraph(df.per,obj.colors)
 fig
 ```
 
-## Golasecca GIIIA1-IIIA3 {#IIIA1_IIIA3}
+## Golasecca IIIA1-IIIA3 {#IIIA1_IIIA3}
 
 Répartition des sites pour la période Golasecca GIIIA1-IIIA3 (450-420 av. J.-C.)
 
@@ -518,9 +589,9 @@ Répartition des sites pour la période Golasecca GIIIA1-IIIA3 (450-420 av. J.-C
 f.lflt.per(getwd(),tab,"GIIIA1_IIIA3") # create leaflet html map 
 ```
 
-Distribution du mobilier par type de site pour la période Golasecca GIIIA1-IIIA3
+Distribution du mobilier par type de site pour la période Golasecca IIIA1-IIIA3
 
-```{r GIIIA1_IIIA3, echo=FALSE, warning=FALSE, fig.cap="Golasecca GIIIA1-IIIA3,"}
+```{r GIIIA1_IIIA3, echo=FALSE, warning=FALSE, fig.cap="Golasecca IIIA1-IIIA3,"}
 chrono <- f.chrono(chm)
 data <- f.data(chm)
 tab <- cbind(data,chrono) # associe les tableaux
@@ -529,7 +600,7 @@ fig <- f.ggraph(df.per,obj.colors)
 fig
 ```
 
-## Golasecca GIIIA3 {#GIIIA3}
+## Golasecca IIIA3 {#GIIIA3}
 
 Répartition des sites pour la période Golasecca GIIIA3 (480-380 av. J.-C.)
 
@@ -537,9 +608,9 @@ Répartition des sites pour la période Golasecca GIIIA3 (480-380 av. J.-C.)
 f.lflt.per(getwd(),tab,"GIIIA3") # create leaflet html map 
 ```
 
-Distribution du mobilier par type de site pour la période Golasecca GIIIA3
+Distribution du mobilier par type de site pour la période Golasecca IIIA3
 
-```{r GIIIA3, echo=FALSE, warning=FALSE, fig.cap="Golasecca GIIIA3"}
+```{r GIIIA3, echo=FALSE, warning=FALSE, fig.cap="Golasecca IIIA3"}
 chrono <- f.chrono(chm)
 data <- f.data(chm)
 tab <- cbind(data,chrono) # associe les tableaux
@@ -550,9 +621,11 @@ fig
 
 # Open Science {#openscience}
 
-Basé sur un wed de données décrites sémantiquement (web sémantique ou *Open Linked Data*). Les objets numériques sont décrits sous la forme de triples *Resource Description Framework* (RDF) sous la forme: sujet-prédicat-objet (*subject-predicate-object*).
+Basé sur un wed de données décrites sémantiquement (web sémantique ou *Linked Open Data*). Les objets numériques sont décrits comme des triples *Resource Description Framework* (RDF) sous la forme: sujet-prédicat-objet (*subject-predicate-object*).
 
-Les données de notre étude peuvent être mises sous la forme d'un graphe RDF. Par exemple pour le site d'Uto-Kulm durant le Golasecca IIAB-IIIA1:
+## Formatage RDF
+
+Les données de notre étude peuvent être mises sous la forme d'un graphe RDF. Par exemple pour le site d'Uto-Kulm durant la phase [Golasecca IIAB-IIIA1](#IIAB_IIIA1):
 
 ```{r ex, echo=TRUE, fig.cap="Uto-Kulm durant le (GIIAB-IIIA1)"}
 per <- "GIIAB_IIIA1"
@@ -570,10 +643,10 @@ Où:
 * **objets** = prédicat
 * **n** = objet
 
-Le langage de programmation [R](https://www.r-project.org/) offre différents *packages* ([rdflib](https://cran.r-project.org/web/packages/rdflib/vignettes/rdf_intro.html), etc.) permettant de formater les données de l'étude: 
+Le langage de programmation [R](https://www.r-project.org/), qui a servi à produire cette page web,  offre différents *packages* ([rdflib](https://cran.r-project.org/web/packages/rdflib/vignettes/rdf_intro.html), [jsonld](https://cran.r-project.org/web/packages/jsonld/index.html), etc.) permettant de formater les données de l'étude sous la forme de *Linked Data* (LD): 
 
 ```{r rdf, echo=TRUE}
-base <- "https://github.com/zoometh/golasecca/tree/main/img/"
+base <- "https://github.com/zoometh/golasecca/tree/main/LOD/"
 rdf <- rdf()
 for (i in 1:nrow(df.per.count)){
   rdf %>% 
@@ -593,16 +666,19 @@ rdf_serialize(rdf, json.name, "jsonld")
 
 Ce fichier peut ensuite être retrouvé sur internet:
 
-[https://raw.githubusercontent.com/zoometh/golasecca/main/img/Uto-Kulm_GIIAB_IIIA1.json](https://raw.githubusercontent.com/zoometh/golasecca/main/img/Uto-Kulm_GIIAB_IIIA1.json)
+<center>[https://raw.githubusercontent.com/zoometh/golasecca/main/LOD/Uto-Kulm_GIIAB_IIIA1.json](https://raw.githubusercontent.com/zoometh/golasecca/main/LOD/Uto-Kulm_GIIAB_IIIA1.json)</center>
 
 ## Mappage CIDOC-CRM {#cidoc}
 
 Les champs et les valeurs de la base de données seront à moyen terme alignées sur le [CIDOC-CRM](https://www.iso.org/standard/34424.html) (*Cultural Heritage Information-Conceptual Reference Model*, ISO 21127), un iso-standard pour la description et l’organisation de l’information liée au patrimoine archéologique et architectural. Son utilisation permet l'interopérabilité des données et leur référencement sur le web sémantique, comme préconisé par l'*Open Science*.
 
+## Autres solutions
 
-# Diffusion des données {#diff}
+Internet fournit d'importantes possibilibités pour la diffusion des données.
 
-Internet fournit d'importantes possibilibités pour la diffusion des données, comme par exemple cette page web issue d'un document [Rmarkdown](https://rmarkdown.rstudio.com/) hebergée sur [GitHub](https://github.com/). Toujours dans le domaine du logiciel libre, on peu citer la solution d'hébergement de projets QGIS sur [QGIS Cloud](https://qgiscloud.com/) où nous avons déposé la carte **[Golasecca IC-IIAB](https://qgiscloud.com/VGChilde/gic_iiab)**
+### QGIS Cloud {#diff}
+
+Dans le domaine du logiciel libre, on peu citer la solution d'hébergement de projets QGIS sur [QGIS Cloud](https://qgiscloud.com/) où nous avons déposé la carte **[Golasecca IC-IIAB](https://qgiscloud.com/VGChilde/gic_iiab)**
 
 # References
 
