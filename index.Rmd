@@ -1,29 +1,14 @@
 ---
-title: "Golasecca"
-author: "T. Huet, V. Cicolani"
-date: "`r format(Sys.Date())`"
+title: "Golasecca-net"
+author: "Thomas Huet, Veronica Cicolani"
+# date: "`r format(Sys.Date())`"
+bibliography: bibliographie.bib
 output:
   html_document:
     toc: true
     toc_float:
       collapsed: false
       smooth_scroll: false
-
-references:
-- id: CicolaniHuet19
-  title: "Essai de modelisation des echanges et des reseaux de circulation dans les Alpes centrales au premier age du Fer"
-  author:
-  - family: Cicolani
-    given: Véronica
-  - family: Huet
-    given: Thomas
-  container-title: "La conquete de la montagne : des premieres occupations humaines a l'anthropisation du milieu"
-  publisher: "CTHS editions"
-  # page: 15-29
-  type: article-journal
-  issued:
-    year: 2019
-    URL: 'https://halshs.archives-ouvertes.fr/halshs-02314978/document'
 ---
 
 ```{r setup, include=FALSE}
@@ -364,7 +349,7 @@ f.leafIcons <- function(sit.per){
 }
 ```
 
-Cette page web reprend les éléments d'un [article paru aux éditions du CTHS](https://halshs.archives-ouvertes.fr/halshs-02314978/document) [@CicolaniHuet19]. Adossée au colloque du CTHS [*La conquête de la montagne : des premières occupations humaines à l’anthropisation du milieu*](https://cths.fr/ed/edition.php?id=7737), notre étude portait sur la distribution spatiale et les liens entre différentes classes de mobilier au cours du premier âge du Fer dans les Alpes centrales. Notre intention était de faire un essai de modélisation des réseaux d'échanges en nous servant de deux heuristiques: le réseau des plus courts chemins théorique et la modélisation des présences/absences de tel ou tel type de mobilier avec le tracé de graphes. Cette modélisation nous avait permis de synthétiser l'information portant sur plus de 250 sites et 2,000 objets. 
+Cette page web reprend les éléments d'un [article paru aux éditions du CTHS](https://halshs.archives-ouvertes.fr/halshs-02314978/document) [@Cicolani19]. Adossée au colloque du CTHS [*La conquête de la montagne : des premières occupations humaines à l’anthropisation du milieu*](https://cths.fr/ed/edition.php?id=7737), notre étude portait sur la distribution spatiale et les liens entre différentes classes de mobilier au cours du premier âge du Fer dans les Alpes centrales. Notre intention était de faire un essai de modélisation des réseaux d'échanges en nous servant de deux heuristiques: le réseau des plus courts chemins théorique et la modélisation des présences/absences de tel ou tel type de mobilier avec le tracé de graphes. Cette modélisation nous avait permis de synthétiser l'information portant sur plus de 250 sites et 2,000 objets. 
 
 Nous avons voulu poursuivre cette modélisation en développant les aspects web et interactifs. Cette page web est issue d'un document *opensource* [Rmarkdown](https://rmarkdown.rstudio.com/) hebergé sur [GitHub](https://github.com/). Nous y reprenons des [éléments de notre étude](#etude) et nous nous intéressons à comment nos résultats peuvent être référencés, rendus accessibles, rendus interopérables et réutilisables dans un contexte de développement de l' [Open Science](#openscience)  
 
