@@ -1,6 +1,7 @@
 ---
 title: "Golasecca-net"
 author: "Thomas Huet, Veronica Cicolani"
+# keywords: "keywordA, keywordB"
 # date: "`r format(Sys.Date())`"
 bibliography: bibliographie.bib
 output:
@@ -604,9 +605,40 @@ fig <- f.ggraph(df.per,obj.colors)
 fig
 ```
 
-# Open Science {#openscience}
+# Science Ouverte {#openscience}
 
-Basé sur un wed de données décrites sémantiquement (web sémantique ou *Linked Open Data*). Les objets numériques sont décrits comme des triples *Resource Description Framework* (RDF) sous la forme: sujet-prédicat-objet (*subject-predicate-object*).
+Basée sur l'ouverture de données (*open data*) [décrites sémantiquement](#websem) (*linked open data*), l' *Open Science* repose sur les principes du [FAIR](#FAIR) 
+
+## FAIR {#FAIR}
+
+```{r faire, echo=F}
+fair <- data.frame(nom = c("**F**indable", "**A**ccessible", "**I**nteroperable", "**R**eusable"),
+                   url = c("#FFAIR", "#FAAIR", "#FAIIR", "#FAIRR"),
+                   stringsAsFactors = F)
+fair$fair <- paste0("[",fair$nom,"](",fair$url,")")
+kable(fair$fair,"html", row.names = F, col.names = NULL) %>%
+  kable_styling(full_width = FALSE, position = "center", font_size=12)
+```
+
+### **F**indable {#FFAIR}
+
+Facile à trouver. Repose sur l'attribution d'identifiants uniques (DOI) et un système standardisé de citations: "*How to cite this dataset*", "*How to cite cite this webpage*". Autour des données proprement dites sont construites des métadonnées (*metadata*) elles aussi standardisées
+
+### **A**ccessible {#FAAIR}
+
+L'ouverture des données (open data) est à la base de la Science Ouverte, ces données toujours accompagnée de métadonnées doivent avoir une certification
+
+### **I**nteroperable {#FAIIR}
+
+Les données seront intégrées à d'autres. Elles doivent donc être exprimées dans des formats ouverts et internationaux. C'est par exemple le cas du format WKT qui est le format standard, *human-readable*, pour la repséentation des données géographiques
+
+### **R**eusable {#FAIRR}
+
+La provenance, le nom du laboratoire, les méthodes et les équipements utilisés doivent être sourcés et sous license. Par exmple la licence ODbL pour les données et bases de données ouvertes 
+
+## Web sémantique {#websem}
+
+Les données sont décrites sous comme des triples sous la forme: sujet-prédicat-objet (*subject-predicate-object*). Ce format de données s'appelle le *Resource Description Framework* (RDF)
 
 ## Formatage RDF
 
