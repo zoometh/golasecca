@@ -2,7 +2,12 @@
 title: "Golasecca"
 author: "T. Huet, V. Cicolani"
 date: "`r format(Sys.Date())`"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
 
 references:
 - id: CicolaniHuet19
@@ -30,9 +35,18 @@ library(ggplot2)
 library(plotly)
 library(dplyr)
 library(reshape)
-
+library(rdflib)
+library(tidyr)
+library(tibble)
+library(jsonld)
+library(knitr)
+library(kableExtra)
+library(leaflet)
+library(sf)
+library(sp)
 
 chm <-"F:\\Collaborations et concours\\Colloques, seminaires, articles\\170427 CTHS\\data_13.xlsx"
+chm.sig <-"F:\\Collaborations et concours\\Colloques, seminaires, articles\\170427 CTHS\\SIG"
 map1.url <- "https://qgiscloud.com/VGChilde/gic_iiab"
 publi.url <- "https://halshs.archives-ouvertes.fr/halshs-02314978/document"
 
@@ -205,12 +219,138 @@ f.ggraph  <- function(df.per,obj.colors){
   return(fig)
 }
 # TODO: class crosses = no markers
+# f.lflt.per(getwd(),tab,"GIC_IIAB") # create leaflet html map 
+# f.lflt.per <- function(chm.doss,tab,per){
+#   # create leaflet obj for the chef de tribu and sect Me
+#   # add the image
+#   # chm.doss <- "C:/Users/supernova/Dropbox/My PC (supernova-pc)/Documents/golasecca" ; per <- "GIC_IIAB"
+#   tab.per <- tab[tab[,per] > 0,]
+#   sit.per <- tab.per[, c("x", "y", "num","sites", "objets", "contexte.site")]
+#   sit.per <- sit.per[complete.cases(sit.per), ]
+#   sit.per <- sit.per[!duplicated(sit.per), ]
+#   sit.per <- na.omit(sit.per)
+# 
+#   leafIcons <- f.leafIcons(sit.per) # cr ions Lf
+#   # leaflet(width = "50%") %>%
+#   #   setView(lng = sit.per$x, lat = sit.per$y) %>%
+#   # aPeriod <- leaflet(data = sit.per,width = "75%") %>%
+#   #   addTiles() %>%
+#   #   addMarkers(~x, ~y, icon = leafIcons, popup=~sites)
+#   paste0(sit.per$num,". ",sit.per$sites,"<br>",sit.per$contexte.site)
+#   
+#   nhd_wms_url <- "https://basemap.nationalmap.gov/arcgis/services/USGSTopo/MapServer/WmsServer"
+# 
+#   aPeriod <- leaflet("map", data = sit.per, width = "75%", height = "500px") %>%
+#     # addTiles() %>%
+#     addTiles(group = 'OSM') %>%
+#     # addWMSTiles(nhd_wms_url, layers = "0", group='Topo')
+#     addProviderTiles(providers$Esri.WorldImagery, group='Topo') %>%
+#     addMarkers(~x, ~y,
+#                icon = leafIcons,
+#                popup=paste0(sit.per$num,". <b>",sit.per$sites,"</b><br>",sit.per$contexte.site),
+#                # popup=~sites,
+#                # opacity=0.8,
+#                label=~num,
+#                labelOptions = labelOptions(noHide = T,
+#                                            direction = "center",
+#                                            textOnly = TRUE,
+#                                            style = list(
+#                                              # "color" = "red",
+#                                              # "font-family" = "serif",
+#                                              "font-style" = "bold",
+#                                              # "box-shadow" = "3px 3px rgba(0,0,0,0.25)",
+#                                              "font-size" = "8px"
+#                                              # "border-color" = "rgba(0,0,0,0.5)"
+#                                            ))) %>%
+#     addLayersControl(
+#       baseGroups = c('Topo', 'OSM')) %>%
+#         addScaleBar(position = "bottomleft")
+#   # htmlwidgets::saveWidget(aPeriod, file=paste0(chm.doss,"/img/site_",per,".html"))
+#   return(aPeriod)
+# }
+
+f.lflt.per <- function(chm.doss,tab,per){
+  tab.per <- tab[tab[,per] > 0,]
+  sit.per <- tab.per[, c("x", "y", "num","sites", "objets", "contexte.site")]
+  sit.per <- sit.per[complete.cases(sit.per), ]
+  sit.per <- sit.per[!duplicated(sit.per), ]
+  sit.per <- na.omit(sit.per)
+  # chemins
+  chemins <- st_read(dsn = chm.sig, layer = "_chemins_merge", quiet = T)
+  wgs84 <- CRS("+proj=longlat +datum=WGS84")
+  chemins <- as(chemins, "Spatial")
+  chemins <- spTransform(chemins, wgs84)
+  chemins.per <- chemins[chemins$layer == per, ]
+  # aire d'etude
+  roi <- st_read(dsn = chm.sig, layer = "_aire_etude", quiet = T)
+  roi <- as(roi, "Spatial")
+  roi <- spTransform(roi, wgs84)
+
+  leafIcons <- f.leafIcons(sit.per) # cr ions Lf
+  
+  # f.leafIcons(sit.per) # cr ions Lf
+  # leaflet(width = "50%") %>%
+  #   setView(lng = sit.per$x, lat = sit.per$y) %>%
+  # aPeriod <- leaflet(data = sit.per,width = "75%") %>%
+  #   addTiles() %>%
+  #   addMarkers(~x, ~y, icon = leafIcons, popup=~sites)
+  paste0(sit.per$num,". ",sit.per$sites,"<br>",sit.per$contexte.site)
+  nhd_wms_url <- "https://basemap.nationalmap.gov/arcgis/services/USGSTopo/MapServer/WmsServer"
+  aPeriod <- leaflet("map", data = sit.per, width = "100%", height = "600px") %>%
+    # addTiles() %>%
+    addTiles(group = 'OSM') %>%
+    addProviderTiles(providers$Stamen.TerrainBackground, group='Stamen') %>%
+    # addWMSTiles(nhd_wms_url, layers = "0", group='Topo')
+    addProviderTiles(providers$Esri.WorldImagery, group='Topo') %>%
+    addPolygons(data = roi, color = "black", fillOpacity = 0, opacity = .7, weight = 3) %>%
+    addPolylines(data = chemins.per, color = "red", opacity = .2, weight = 1) %>%
+    addMarkers(~x, ~y,
+               icon = leafIcons,
+               popup=paste0(sit.per$num,". <b>",sit.per$sites,"</b><br>",
+                            sit.per$contexte.site),
+               # popup=~sites,
+               # opacity=0.8,
+               label=~num,
+               labelOptions = labelOptions(noHide = T,
+                                           direction = "center",
+                                           textOnly = TRUE,
+                                           style = list(
+                                             # "color" = "red",
+                                             # "font-family" = "serif",
+                                             "font-style" = "bold",
+                                             # "box-shadow" = "3px 3px rgba(0,0,0,0.25)",
+                                             "font-size" = "8px"
+                                             # "border-color" = "rgba(0,0,0,0.5)"
+                                           ))) %>%
+    addControl(per, position = "topright") %>%
+    addLayersControl(
+      baseGroups = c('Stamen', 'Topo', 'OSM')) %>%
+    addScaleBar(position = "bottomleft")
+  return(aPeriod)
+}
+
+f.leafIcons <- function(sit.per){
+  leafIcons <- icons(
+    # leafIcons
+    iconUrl = ifelse(sit.per$contexte.site %in% c('funeraire'),
+                     paste0(getwd(),"/img/s_funeraire.png"),
+                     ifelse(sit.per$contexte.site %in% c('indetermine','non_rens'),
+                            paste0(getwd(),"/img/s_indet.png"),
+                            ifelse(sit.per$contexte.site %in% c('depot','sanctuaire','fluvial'),
+                                   paste0(getwd(),"/img/s_depot.png"),
+                                   ifelse(sit.per$contexte.site %in% c('habitat'),
+                                          paste0(getwd(),"/img/s_habitat.png"), paste0(getwd(),"/img/s_autres.png"))))
+    ),
+    iconWidth = 15, iconHeight = 15
+  )
+  return(leafIcons)
+}
 ```
 
 Cette page web reprend les éléments d'un [article paru aux éditions du CTHS](https://halshs.archives-ouvertes.fr/halshs-02314978/document) [@CicolaniHuet19] pour présenter: 
 
 * une [modélisation des échanges dans les Alpes centrales au premier âge du Fer](#etude)  
-* un [*mappage* de la structure de données avec l'iso-standard CIDOC-CRM](#cidoc)  
+* un [formatage des données pour l'Open Science](#openscience)  
 * une première revue des solutions opensource pour la [diffusion des données](#diff)
 
 # Etude des réseaux d'échange {#etude}
@@ -226,91 +366,9 @@ nb.typ.sites <- length(unique(tab$contexte.site))
 
 L'étude porte sur `r nb.sites` sites, `r nb.typ.obj` classes d'objets et 4 périodes.
 
-```{r effectifs, echo=FALSE, warning=FALSE, fig.width=8, fig.height= 5, fig.align="center", fig.cap="volume du mobilier étudié"}
-tab.count <- subset(tab, select = c("objets","GIC_IIAB","GIIAB_IIIA1","GIIIA1_IIIA3","GIIIA3"))
-tab.count[is.na(tab.count)] <- 0
-# aggregate(tab.count$GIC_IIAB, by=list(objets=tab.count$objets), FUN=sum)
-tab.count <- aggregate(cbind(tab.count$GIC_IIAB,
-                             tab.count$GIIAB_IIIA1,
-                             tab.count$GIIIA1_IIIA3,
-                             tab.count$GIIIA3),
-                       by=list(Category=tab.count$objets), FUN=sum)
-names(tab.count) <- c("objets","GIC-IIAB","GIIAB-IIIA1","GIIIA1-IIIA3","GIIIA3")
-tab.count.col <- merge(tab.count, obj.colors, by.x="objets", by.y = "nom", all.x= T)
-tab.count.melt <- melt(tab.count,id.vars = "objets")
-# get rgb colors
-tab.count.melt <- merge(tab.count.melt, obj.colors, by.x="objets", by.y = "nom", all.x= T)
-tab.count.melt$lbl <- paste0(tab.count.melt$objets,'<br>n = ',as.character(tab.count.melt$value))
-# figures.prem.sum <- figures.prem.sum[figures.prem.sum$prem != '',] # rm NA
-# figures.prem.sum <- figures.prem.sum[!(figures.prem.sum$prem %in% thm.not.selected),] # rm N
-# merge to get thm fullname and colors
-# figures.prem.sum$lbl <- paste0(figures.prem.sum$thm,'<br>n = ',as.character(figures.prem.sum$n))
-# TODO: colors
-period.objets.sums <- aggregate(tab.count.melt$value, by=list(period=tab.count.melt$variable), FUN=sum)
-fig.count <- tab.count.melt %>%
-  plot_ly(x = ~variable,
-          y = ~value,
-          type = 'bar', 
-          text = ~lbl,
-          hoverinfo = 'text',
-          hovertext = ~lbl,
-          name = ~objets,
-          color = ~rgb) %>%
-  add_annotations(x=period.objets.sums$period,
-                  y=period.objets.sums$x,
-                  # TODO: rm arrow
-                  text=period.objets.sums$x) %>%
-  layout(yaxis = list(title = 'Count'), barmode = 'stack')
-fig.count
-```
+## Golasecca IC-IIAB {#IC_IIAB}
 
-Les sites se répartissent en `r nb.typ.sites` types différents
-
-```{r lis.typ.site, echo=FALSE, warning=FALSE, fig.width=3, fig.height= 3, fig.cap="types de sites"}
-fig <- plot_ly(
-  site.type,
-  y = 1:nrow(site.type),
-  x = 2,
-  mode = 'text',
-  textfont = list(color = '#000000', size = 12),
-  textposition = 'right',
-  text = site.type$contexte.site) %>%
-  # text = paste0("-   ",site.type$contexte.site)) %>%
-  layout(xaxis = list(title = "",
-                      showgrid = FALSE,
-                      showticklabels = FALSE,
-                      zeroline = FALSE),
-         yaxis = list(title = "",
-                      showgrid = FALSE,
-                      showticklabels = FALSE,
-                      zeroline = FALSE)
-  ) %>%
-  add_markers(
-    y = 1:nrow(site.type),
-    x = 1,
-    mode = "markers",
-    text = site.type$contexte.site,
-    hoverinfo = "text",
-    opacity = 1,
-    marker = list(
-      symbol = site.type$contexte.forme.ply,
-      size = 8,
-      color = site.type$contexte.couleur,
-      opacity = 1,
-      line = list(
-        color = "#000000",
-        width = 1
-      )
-    )
-  ) 
-fig
-# # export(fig, file = "image.png")
-# plotly_IMAGE(fig, width = 500, height = 500, format = "png", scale = 2,
-#              out_file = "test.png")
-```
-
-
-## Golasecca IC-IIAB
+Répartition des sites durant le Golasecca IC-IIAB (670-530 avant J.-C.)
 
 ```{r spat.sit.IC_IIAB, fig.align="center"}
 # chrono <- f.chrono(chm)
@@ -319,20 +377,24 @@ fig
 # df.per <- f.a.period(tab,site.type,"GIC_IIAB") # subset # période 1
 # df.per <- merge(df.per,site.type,by="contexte.site",all.x=T) # merge
 # df.per <- df.per[, c("num", "sites","objets","contexte.forme.ply","contexte.couleur","contexte.site" )]
-htmltools::includeHTML(paste0(getwd(),"/img/site_GIC_IIAB.html"))
+# htmltools::includeHTML(paste0(getwd(),"/img/site_GIC_IIAB.html"))
+# for(per in c("GIC_IIAB","GIIAB_IIIA1","GIIIA1_IIIA3","GIIIA3")){
+f.lflt.per(getwd(),tab,"GIIIA1_IIIA3") # create leaflet html map 
+
+  # f.lflt.per(getwd(),tab,"GIC_IIAB") # create leaflet html map 
+
 ```
 
-Distribution du mobilier par type de site par type de site pour la période Golasecca IC-IIAB, entre 670 et 530 avant J.-C.
+Distribution du mobilier par type de site par type de site pour la période Golasecca IC-IIAB
 
 ```{r GIC_IIAB, echo=FALSE, warning=FALSE, fig.cap="Golasecca IC-IIAB"}
 chrono <- f.chrono(chm)
 data <- f.data(chm)
 tab <- cbind(data,chrono) # associe les tableaux
-df.per <- f.a.period(tab,site.type,"GIC_IIAB") # subset # période 1
+df.per <- f.a.period(tab,site.type,"GIIIA1_IIIA3") # subset # période 1
 fig <- f.ggraph(df.per,obj.colors)
 fig
 ```
 
-# References
 
 <!-- [Bib](https://halshs.archives-ouvertes.fr/halshs-02314978/document) -->
