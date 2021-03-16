@@ -1,6 +1,21 @@
 ---
 title: "Golasecca-net"
-author: "Thomas Huet, Veronica Cicolani"
+author:
+  - Thomas Huet^[LabEx ARCHIMEDE, ANR-11-LABX-0032-01, thomashuet7@gmail.com]
+  - Veronica Cicolani^[LabEx ARCHIMEDE, ANR-11-LABX-0032-01, AOrOc UMR 8546 CNRS-ENS-PSL, cicojunior@gmail.com]
+# author: "Thomas Huet, Veronica Cicolani"
+# authors:
+#   - name: Thomas Huet
+#     orcid: 0000-0002-1112-6122
+#     affiliation: 1
+#   - name: Veronica Cicolani
+#     orcid: 0000-0003-0326-299X
+#     affiliation: 1, 2
+# affiliations:
+#   - name: LabEx ARCHIMEDE, ANR-11-LABX-0032-01
+#     index: 1
+#   - name: AOrOc UMR 8546 CNRS-ENS-PSL
+#     index: 2
 # keywords: "keywordA, keywordB"
 # date: "`r format(Sys.Date())`"
 bibliography: bibliographie.bib
@@ -12,8 +27,9 @@ output:
       smooth_scroll: false
 ---
 [![DOI](https://zenodo.org/badge/312086763.svg)](https://zenodo.org/badge/latestdoi/312086763)
+&nbsp;
   
-  
+&nbsp;
   
   
 ```{r setup, include=FALSE}
@@ -355,12 +371,11 @@ f.leafIcons <- function(sit.per){
 }
 ```
   
-  
-Cette page web reprend les éléments d'un [article paru aux éditions du CTHS](https://halshs.archives-ouvertes.fr/halshs-02314978/document) [@Cicolani19]. Adossée au colloque du CTHS [*La conquête de la montagne : des premières occupations humaines à l’anthropisation du milieu*](https://cths.fr/ed/edition.php?id=7737), notre étude portait sur la distribution spatiale et les liens entre différentes classes de mobilier au cours du premier âge du Fer dans les Alpes centrales. Notre intention était de faire un essai de modélisation des réseaux d'échanges en nous servant de deux heuristiques: le réseau des plus courts chemins théorique et la modélisation des présences/absences de tel ou tel type de mobilier avec le tracé de graphes. Cette modélisation nous avait permis de synthétiser l'information portant sur plus de 250 sites et 2,000 objets. 
+Cette page web reprend les éléments d'une étude réalisée dans le cadre du LabEx ARCHIMEDE^[Ce travail a bénéficié du soutien du LabEx ARCHIMEDE au titre du programme "Investir L'Avenir" ANR-11-LABX-0032-01, [https://archimede.cnrs.fr/](https://archimede.cnrs.fr/)] et d'un article paru aux éditions du CTHS [@Cicolani19]. Adossée au colloque du CTHS [*La conquête de la montagne : des premières occupations humaines à l’anthropisation du milieu*](https://cths.fr/ed/edition.php?id=7737), notre étude portait sur la distribution spatiale et les associations entre différentes classes de mobilier au cours du premier âge du Fer dans les Alpes centrales. Notre intention était de faire un essai de modélisation des réseaux d'échanges en nous servant de deux heuristiques: le réseau des plus courts chemins théorique et la modélisation des présences/absences de tel ou tel type de mobilier avec le tracé de graphes. Cette modélisation nous avait permis de synthétiser l'information portant sur plus de 250 sites et 2,000 objets. 
 
 Nous avons voulu poursuivre cette modélisation en développant les aspects web et interactifs. Cette page web est issue d'un document *opensource* [Rmarkdown](https://rmarkdown.rstudio.com/) hebergé sur [GitHub](https://github.com/). Nous y reprenons des [éléments de notre étude](#etude) et nous nous intéressons à comment nos résultats peuvent être référencés, rendus accessibles, rendus interopérables et réutilisables dans un contexte de développement de l' [Open Science](#openscience)  
 
-# Etude des réseaux d'échange {#etude}
+# Réseaux d'échanges au Golasecca {#etude}
 
 ```{r intro, echo=FALSE, warning=FALSE}
 chrono <- f.chrono(chm)
@@ -435,7 +450,7 @@ fig.count
 
 L'étude porte sur `r nb.sites` sites appartenant à `r nb.typ.sites` types différents
 
-```{r lis.typ.site, echo=FALSE, warning=FALSE, fig.width=3, fig.height= 3, fig.cap="types de sites"}
+```{r lis.typ.site, echo=FALSE, warning=FALSE, fig.width=5, fig.height= 3, fig.cap="types de sites"}
 fig <- plot_ly(
   site.type,
   y = 1:nrow(site.type),
@@ -477,7 +492,7 @@ fig
 #              out_file = "test.png")
 ```
 
-# Evolution au cours du Golasecca
+# Evolution des réseaux d'échanges
 
 Le Golasecca couvre la période `r Gdebut` à `r Gfin` avant J.-C. Cette période a été divisées en `r nb.periodes` phases:
 
@@ -526,7 +541,7 @@ Pour chacune de ces phases nous présentons:
 
 Répartition des sites durant le Golasecca IC-IIAB (670-530 avant J.-C.)
 
-```{r spat.sit.IC_IIAB, fig.align="center"}
+```{r spat.sit.IC_IIAB, fig.align="center", warning=FALSE}
 # chrono <- f.chrono(chm)
 # data <- f.data(chm)
 # tab <- cbind(data,chrono) # associe les tableaux
@@ -556,7 +571,7 @@ fig
 
 Répartition des sites au Golasecca GIIAB-IIIA1 (530-460 av. J.-C.)
 
-```{r spat.sit.IIAB_IIIA1, echo=FALSE}
+```{r spat.sit.IIAB_IIIA1, echo=FALSE, warning=FALSE}
 # for(per in c("GIC_IIAB","GIIAB_IIIA1","GIIIA1_IIIA3","GIIIA3")){
 f.lflt.per(getwd(),tab,"GIIAB_IIIA1") # create leaflet html map 
 ```
@@ -576,7 +591,7 @@ fig
 
 Répartition des sites pour la période Golasecca GIIIA1-IIIA3 (450-420 av. J.-C.)
 
-```{r spat.sit.IIIA1_IIIA3, echo=FALSE}
+```{r spat.sit.IIIA1_IIIA3, echo=FALSE, warning=FALSE}
 # for(per in c("GIC_IIAB","GIIAB_IIIA1","GIIIA1_IIIA3","GIIIA3")){
 f.lflt.per(getwd(),tab,"GIIIA1_IIIA3") # create leaflet html map 
 ```
@@ -596,7 +611,7 @@ fig
 
 Répartition des sites pour la période Golasecca GIIIA3 (480-380 av. J.-C.)
 
-```{r spat.sit.GIIIA3, echo=FALSE}
+```{r spat.sit.GIIIA3, echo=FALSE, warning=FALSE}
 f.lflt.per(getwd(),tab,"GIIIA3") # create leaflet html map 
 ```
 

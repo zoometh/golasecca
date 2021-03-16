@@ -1,3 +1,8 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 [![DOI](https://zenodo.org/badge/312086763.svg)](https://zenodo.org/badge/latestdoi/312086763)
 
 # Golasecca-net <img src="https://github.com/zoometh/thomashuet.github.io/blob/main/img/Ha_Gol.png" align="right" width="200"/>
