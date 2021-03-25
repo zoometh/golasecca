@@ -1,0 +1,434 @@
+---
+title: "<span style='font-size: 35px'>Projet <b>ITINERIS</b></style><br><span style='font-size: 25px'>Gestion des données de la recherche <br> dans le contexte de la Science Ouverte</style>"
+# author: "Thomas Huet"
+# runtime: shiny
+output: 
+  html_document:
+    highlight: tango
+    toc: true
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+# knitr::opts_chunk$set(echo = FALSE, fig.width = 19, fig.height = 14)
+library(kableExtra) 
+library(dplyr)
+library(knitr)
+library(shiny)
+library(visNetwork)
+library(stringi)
+library(rdflib)
+
+
+base <- "https://github.com/zoometh/golasecca/tree/main/"
+# load(file=paste0(base,"df_per_count.RData"))
+# getwd()
+# load("LOD/df_per_count.RData")
+
+text.size <- 15
+
+# insttutions
+# path.logos <- "https://raw.githubusercontent.com/zoometh/golasecca/main/img/logo/"
+name.i <- c("CNRS-PSL,AOrOc,UMR8546",
+            "C2RMF,Louvre",
+            "Musée d'Archéologie,nationale",
+            "University,of Padua",
+            "University,of Turin",
+            "Musei Reali,of Turin",
+            "Musei Civici,of Reggio Emilia"
+            )
+name.ip <- c("Veronica CICOLANI<br>Julien ZURBACH<br>Agnès TRICOCHE<br>Jean-Baptiste HOUAL<br>Frédérique MARCHAND-BEAULIEU",
+             "Benoît MILLE<br>Elsa LAMBERT",
+             "Christine LORRE",
+             "Gilberto ARTIOLI<br>Ivana ANGELINI",
+             "Alessandro LO GIUDICE<br>Alessandro RE<br>Eliano DIANA",
+             "Elisa PEREGO",
+             "Giada PELLEGRINI")
+# logos <- ("aoroc.png")
+n.inst <- length(name.i)
+# icons.path <- paste0(path.logos, logos)
+inst <- data.frame(id= name.i,
+                   # label = name.i,
+                   label = gsub(",","\n", name.i),
+                   color = c(rep("#d3d3d3", n.inst)),
+                   title = name.ip,
+                   # title = c(name.ip, rep(stri_rand_lipsum(1), n.inst-1)),
+                   font.size = rep(text.size, n.inst),
+                   # font = list(size = c(rep(text.size, n.inst))),
+                   # image = icons.path,
+                   font.color = c(rep("blue", n.inst)),
+                   shape = c(rep("text", n.inst)),
+                   size = c(rep(50, n.inst)),
+                   group = c(rep("wkp", n.inst))
+)
+# wp
+name.w <- c("WP1", "WP2", "WP3")
+n.wkps <- length(name.w)
+wkps <- data.frame(id= name.w,
+                   label = name.w,
+                   color = c("#ffff00","#e26b0a","#963634"),
+                   title = c("WP1 Chemical analyis <a href='https://www.google.com'>link text</a>",
+                             "WP2 Archaeological & Technological analysis",
+                             "WP3 Database"),
+                   font.size = rep(text.size, n.wkps),
+                   font.color = c(rep("black", n.wkps)),
+                   # font = list(size = c(rep(text.size, n.wkps))),
+                   # image = c(rep(icons.path, n.wkps)),
+                   shape = c(rep("box", n.wkps)),
+                   size = c(rep(50, n.wkps)),
+                   group = c(rep("wkp", n.wkps))
+)
+# tasks
+name.t <- c("ICP-MS analysis","Isotopic analysis",
+            "SEM analysis","X-r analysis",
+            
+            "Inventory/Drawing", "Photogrammetry",
+            "Scan 3D","Microscopic analyisis",
+            
+            "Web Database", "Mathematical-Spatial modeling",
+            "Network analysis", "FAIR referencing")
+n.tasks <- length(name.t)
+tasks <- data.frame(id=name.t,
+                    label = gsub(" ","\n", name.t),
+                    color = c(rep("#808080", n.tasks)),
+                    title = c("Inductively coupled plasma mass spectrometry (ICP-MS) is a type of mass spectrometry that uses an Inductively coupled plasma to ionize the sample. <i>wiki</i>",
+                              "Isotope analysis is the identification of isotopic signature, the abundance of certain stable isotopes and chemical elements within organic and inorganic compounds <i>wiki</i>",
+                              "A scanning electron microscope (SEM) is a type of electron microscope that produces images of a sample by scanning the surface with a focused beam of electrons",
+                              "X-ray fluorescence (XRF) is the emission of characteristic 'secondary' (or fluorescent) X-rays from a material that has been excited by being bombarded with high-energy X-rays or gamma rays",
+                              rep(stri_rand_lipsum(1), 4),
+                              rep(stri_rand_lipsum(1), 4)),
+                    shape = c(rep("text", n.tasks)),
+                    font.size = rep(text.size, n.tasks),
+                    font.color = c(rep("black", n.tasks)),
+                    # font = list(size = c(rep(text.size, n.tasks))),
+                    # image = c(rep(icons.path, n.tasks)),
+                    size = c(rep(10, n.tasks)),
+                    group = c(rep("tsk", n.tasks)))
+nodes <- rbind(wkps, tasks, inst)
+
+edges <- data.frame(from=c(name.t,
+                           rep("CNRS-PSL,AOrOc,UMR8546", 3),
+                           rep("C2RMF,Louvre", 2),
+                           rep("Musée d'Archéologie,nationale", 2),
+                           rep("University,of Padua", 1),
+                           rep("University,of Turin", 2),
+                           rep("Musei Reali,of Turin", 2),
+                           rep("Musei Civici,of Reggio Emilia", 2)
+                           ),
+                    to=c(rep("WP1", 4), rep("WP2", 4), rep("WP3", 4),
+                         c("WP1","WP2", "WP3"),
+                         c("WP1", "WP2"),
+                         c("WP1", "WP2"),
+                         c("WP1"),
+                         c("WP1", "WP2"),
+                         c("WP1", "WP2"),
+                         c("WP1", "WP2")
+                         ),
+                    width = ".5")
+network <- visNetwork(nodes, edges, width = "700px", height = "700px")
+```
+
+
+Ce document [R](https://www.r-project.org/) + [Markdown](https://rmarkdown.rstudio.com/) illustre comment le projet d'ANR 'ITINERIS' (coord. Veronica Cicolani) entend gérer les données issues de sa recherche dans un contexte d'ouverture et de référencement de l'information scientifique: la Science Ouverte  
+
+# Axes de recherche
+
+```{r calibrate, fig.height= 8, fig.width= 8, echo=FALSE}
+network
+```
+
+Partant d'une étude archéométrique des objets avec leur analyse physico-chimique et de surface ([WP1](#wp1), [WP2](#wp2)), puis la remise de ces objets dans leur contexte historico-culturel de production, de circulation et d'utilisation ([WP3](#wp3))
+
+## WP1 {#wp1}
+
+Ce programme de travail porte sur l'étude des [états de surface](#wp1.surfacetexture) et les [analyses physico-chimiques](#wp1.physicochimiques)
+
+### Etats de surface {#wp1.surfacetexture}
+
+L'analyse de surface passera par une analyse macro- et micro-optique. Les données des études des états de surface seront renseignés selon les standards suivants:
+
+```{r etatsurface, echo=F}
+base.iso.url <- "https://www.iso.org/"
+description <- c("Production d'une documentation technique",
+                 "Caractéristiques nominales des instruments à contact (palpeur)",
+                 "Terminologie, description et paramètres",
+                 "Règles et procédures de mesures",
+                 "Étalonnage matériel et logiciel",
+                 "Étalonnage matériel et logiciel",
+                 "Étalonnage motifs",
+                 "Étalonnage des ICs, surfaces ayant des propriétés fonctionnelles différentes suivant les niveaux",
+                 "Étalonnage des ICs, surfaces ayant des propriétés fonctionnelles différentes suivant les niveaux",
+                 "Étalonnage des ICs, surfaces ayant des propriétés fonctionnelles différentes suivant les niveaux")
+isos <- c("1302:2002",
+          "3274:1996",
+          "4287:1997",
+          "4288:1996",
+          "5436-1:2000",
+          "5436-2:2012",
+          "12085:1996",
+          "13565-1:1996",
+          "13565-2:1996",
+          "13565-3:1998")
+urls <- c("obp/ui/#iso:std:iso:1302:ed-4:v1:fr",
+          "fr/standard/1916.html",
+          "fr/standard/10132.html",
+          "fr/standard/2096.html",
+          "fr/standard/21978.html",
+          "fr/standard/61261.html",
+          "fr/standard/20867.html",
+          "fr/standard/22279.html",
+          "fr/standard/22280.html",
+          "fr/standard/26280.html")
+iso.url <- paste0("[",isos,"](",base.iso.url,urls,")")
+df.etatsurface <- data.frame(ISO = iso.url,
+                             description = description,
+                             stringsAsFactors = F)
+kable(df.etatsurface,"html",
+      row.names = F,
+      caption = "Standards de l'analyse de surface (*surface texture*) pour la documentation technique et les méthodes du profil (ICs: instruments à contact, i.e. palpeur)") %>%
+  collapse_rows() %>%
+  kable_styling(full_width = FALSE,
+                position = "center",
+                font_size=12)
+```
+
+### Analyses physico-chimiques {#wp1.physicochimiques}
+
+Les analyses physico-chimiques permettront de caractériser les alliages cuivreux
+
+```{r physicochimiques, echo=F}
+base.iso.url <- "https://www.iso.org/fr/"
+description <- c("Cuivre et alliages de cuivre",
+                 "Analyses isotopiques",
+                 "Spectroscopie Raman",
+                 "Spectroscopie des rayon X")
+isos <- c("ISO/TC 26",
+          "17034:2016",
+          "10810:2019",
+          "10810:2019"
+)
+urls <- c("committee/47228.html",
+          "standard/29357.html",
+          "standard/74286.html",
+          "standard/74286.html"
+)
+iso.url <- paste0("[",isos,"](",base.iso.url,urls,")")
+df.physicochimiques <- data.frame("ISO/TC" = iso.url,
+                                  description = description,
+                                  stringsAsFactors = F)
+kable(df.physicochimiques,"html",
+      row.names = F,
+      caption = "Standards pour les analyses physico-chimiques") %>%
+  collapse_rows() %>%
+  kable_styling(full_width = FALSE,
+                position = "center",
+                font_size=12)
+```
+
+## WP2 {#wp2}
+
+
+### Analyse 3D {#wp2.imaging}
+
+
+
+```{r imaging, echo=F}
+base.iso.url <- "https://www.iso.org/fr/"
+description <- c("Gestion de la documentation 3D (Lasergrammétrie, RTI)")
+isos <- c("14739-1:2014l")
+urls <- c("standard/54948.html")
+iso.url <- paste0("[",isos,"](",base.iso.url,urls,")")
+df.imaging <- data.frame("ISO" = iso.url,
+                         description = description,
+                         stringsAsFactors = F)
+kable(df.imaging,"html",
+      row.names = F,
+      caption = "Standards pour la gestion de la documentation 3D") %>%
+  collapse_rows() %>%
+  kable_styling(full_width = FALSE,
+                position = "center",
+                font_size=12)
+```
+
+## WP3 {#wp3}
+
+### Base de données Web {#wp3.bdweb}
+
+Le format de base de donnée sera celui d'une structure NoSQL hebergée sur un serveur Huma-Num. L'architecture NoSQL qui s'est développée avec internet, va faciliter l'intéropérabilité des données, notamment en reprenant la structure du web de données organisé sur des représentations de graphes (RDF):
+
+```{r databases, echo=F}
+base.iso.url <- "https://www.iso.org/fr/"
+description <- c("Représenter/publier les données",
+                 "Représenter/publier les données",
+                 "Décrire les données à partir de vocabulaires",
+                 "Historique des données",
+                 "Historique des données",
+                 "Historique des données",
+                 "Recherche de données")
+format <- c("JSON-LD",
+            "RDF",
+            "XML-TEI",
+            "VoID",
+            "DCAT",
+            "PROV-O",
+            "SPARQL"
+)
+df.imaging <- data.frame(description = description,
+                         format = format,
+                         stringsAsFactors = F)
+kable(df.imaging,"html",
+      row.names = F,
+      caption = "Base de données") %>%
+  collapse_rows() %>%
+  kable_styling(full_width = FALSE,
+                position = "center",
+                font_size=12)
+```
+
+### Référencement FAIR {#openscience}
+
+Basée sur l'ouverture de données (*open data*) [décrites sémantiquement](#websem) et des métadonnées (*metadata*), l'*Open Science* repose sur les principes du FAIR
+
+```{r faire, echo=F}
+fair <- data.frame(nom = c("**F**acile à trouver",
+                           "**A**ccessible",
+                           "**I**nteropérable",
+                           "**R**éutilisable"),
+                   name = c("***F**indable*",
+                            "***A**ccessible*",
+                            "***I**nteroperable*",
+                            "***R**eusable*"),
+                   url = c("#FFAIR",
+                           "#FAAIR",
+                           "#FAIIR",
+                           "#FAIRR"),
+                   stringsAsFactors = F)
+fair$fair <- paste0("[",fair$nom,"](",fair$url,")")
+kable(fair$fair,"html", row.names = F, col.names = NULL) %>%
+  kable_styling(full_width = FALSE, position = "center", font_size=12)
+```
+
+#### **F**acile à trouver {#FFAIR}
+
+Repose sur l'attribution d'identifiants uniques (DOI) et un système standardisé de citations, comme les boutons "Citer" ou les liens qui affichent des les principaux formats de références biblographiques (.bib, .tex, etc.). Comme pour citer la page web [Golasecca-net](https://zoometh.github.io/golasecca) et l'article ayant servis à développer cette page:
+
+<center>[https://raw.githubusercontent.com/zoometh/golasecca/main/bibliographie.bib](https://raw.githubusercontent.com/zoometh/golasecca/main/bibliographie.bib)</center>
+
+#### **A**ccessible {#FAAIR}
+
+L'ouverture des données (*open data*) est à la base de la Science Ouverte, ces données seront  accompagnées de métadonnées et recevront une certification
+
+#### **I**ntéroperable {#FAIIR}
+
+Les données seront intégrées à d'autres. Elles doivent donc être exprimées dans des formats ouverts et internationaux. C'est par exemple le cas du format WKT qui est le format standard, *human-readable*, pour la représentation des données géographiques.
+
+Pour les données historico-culturelles (sites archéologiques, contexte stratigraphiques, typologie des objets, etc.), lors de la conception de la base de données, nous chercherons à aligner les champs et les valeurs sur le *Cultural Heritage Information-Conceptual Reference Model* ([CIDOC-CRM, ISO 21127](https://www.iso.org/standard/34424.html). Le CIDOC-CRM est un iso-standard pour la description et l’organisation de l’information liée au patrimoine archéologique et architectural
+
+
+#### **R**éusable {#FAIRR}
+
+La provenance, le nom du laboratoire, les méthodes et les équipements utilisés seront sourcés et sous license. 
+
+```{r licences, echo=F}
+licences <- c("ODbL")
+description <- c("bases de données ouvertes")
+df.licences <- data.frame(licences = licences,
+                          description = description,
+                          stringsAsFactors = F)
+kable(df.licences,"html", row.names = F,
+      caption = "Exemples de licences utilisées dans le projet") %>%
+  kable_styling(full_width = FALSE, position = "center", font_size=12)
+```
+
+Les données ouvertes seront connectées au web sémantique (*linked open data*, LOD). Ces données décrites comme des triples structurés sous la forme: sujet-prédicat-objet, au format *Resource Description Framework* (RDF) et enregistrées selon la syntaxe *JavaScript Object Notation for Linked Data* (JSON-LD). 
+
+Par exemple pour le site d'Uto-Kulm (n° 247) durant la phase [Golasecca IIAB-IIIA1](https://zoometh.github.io/golasecca/#Golasecca_IIAB-IIIA1):
+
+```{r ex, echo=F, fig.cap="Uto-Kulm durant le (GIIAB-IIIA1)"}
+per <- "GIIAB_IIIA1"
+site <- "Uto-Kulm"
+df.per.count <- data.frame(sites = c(site, site),
+                           objets = c("Ceramique grecque", "Parure Golasecca"),
+                           n = c(2, 1),
+                           stringsAsFactors = F)
+kable(df.per.count,"html", row.names = F,) %>%
+  kable_styling(full_width = FALSE, position = "center", font_size=12)
+```
+
+Où:
+
+* **sites** = sujet
+* **objets** = prédicat
+* **n** = objet
+
+Le langage de programmation R,  offre différents *packages* ([rdflib](https://cran.r-project.org/web/packages/rdflib/vignettes/rdf_intro.html), [jsonld](https://cran.r-project.org/web/packages/jsonld/index.html), etc.) permettant de formater les données de l'étude sous la forme de LOD: 
+
+```{r rdf, echo=TRUE}
+rdf <- rdf()
+for (i in 1:nrow(df.per.count)){
+  rdf %>% 
+    rdf_add(subject = paste0(base, df.per.count[i,"sites"]), 
+            predicate = paste0(base, df.per.count[i,"objets"]), 
+            object = df.per.count[i,"n"]) 
+}
+rdf
+```
+
+Le triple peut être sérialisé sous le format JSON-LD, actuellement le plus populaire pour décrire des données web et qui sera bientôt intégré par Google. 
+
+```{r json, echo=TRUE}
+json.name <- paste0(getwd(),site,"_",per,".json")
+rdf_serialize(rdf, json.name, "jsonld") 
+```
+
+Ce fichier peut ensuite être déposé dans un entrepôt de données (i.e., *data warehouse*, *repository*) accessible sur internet:
+
+<center>[https://raw.githubusercontent.com/zoometh/golasecca/main/LOD/Uto-Kulm_GIIAB_IIIA1.json](https://raw.githubusercontent.com/zoometh/golasecca/main/LOD/Uto-Kulm_GIIAB_IIIA1.json)</center>
+
+### Analyses de réseaux {#wp3.networks}
+
+L'analyse de réseaux (*network analysis*) est un formalisme largement utilisé, en même temps qu'une heuristique visuelle (*graph drawing*) pour la représentation des ensembles structurés. Elle sera employée à différentes échelle et selon différents paradigmes:
+
+
+<center>
+  
+![Exemple d'analyse de réseaux et de cartographie interactive, extrait de la page web [Golasecca-net](https://zoometh.github.io/golasecca/#Golasecca_IIAB-IIIA1)](https://raw.githubusercontent.com/zoometh/golasecca/main/img/ex_spatialnetwork.png){width=500}
+
+</center>
+
+<center>
+  
+![Exemple d'analyse de graphe, extrait de la page web [Golasecca-net](https://zoometh.github.io/golasecca/#Golasecca_IIAB-IIIA1)](https://raw.githubusercontent.com/zoometh/golasecca/main/img/ex_graph.png){width=500}
+
+</center>
+
+Les données utilisées dans l'analyse de réseaux sont basiquement des noeuds (*vertices*) et des liens (*edges*). Ces données peuvent être mises sous la forme de XXXX
+
+
+### Modélisation mathématique et spatiale {#wp3.modeling}
+
+Les données de la modélisation mathématique et spatiale seront mises aux formats conventionnellement utilisés dans ces domaines.
+
+```{r modelmath, echo=F}
+base.iso.url <- "https://www.iso.org/fr/"
+description <- c("Modélisation mathématique",
+                 "Information géographique")
+urls <- c("standard/64973.html",
+          "standard/26020.html")
+isos <- c("80000-2:2019",
+          "19115:2003")
+iso.url <- paste0("[",isos,"](",base.iso.url,urls,")")
+df.mathspat <- data.frame("ISO" = iso.url,
+                          description = description,
+                          stringsAsFactors = F)
+kable(df.mathspat,"html",
+      row.names = F,
+      caption = "Standards pour les analyses mathématiques et spatiales") %>%
+  collapse_rows() %>%
+  kable_styling(full_width = FALSE,
+                position = "center",
+                font_size=12)
+```
