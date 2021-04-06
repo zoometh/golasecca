@@ -1,4 +1,4 @@
-X,Y,Pays,Région,Département,Commune,Lieu-dit,Objet,XXX,Trie,Variante,IMITATION,Contexte,Golasecca IC-IIA,Golasecca IIA-IIAB,Golasecca IIAB-IIB,Golasecca IIB,Golasecca IIIA1,Golasecca IIIA1-IIIA2,Golasecca IIIA2,Golasecca IIIA2-IIIA3,Golasecca IIIA3,Hallstatt D,La Tene A,GIC_IIAB (670-530) ,GIIAB_IIIA1 (530-450) ,GIIIA1_IIIA3 (450-420),GIIIA3 (420-380),TOTAL,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-8.490278,47.349722,Suisse,canton de Zurig,Zurig,Uetliberg,Uto-Kulm,Ceramique grecque,VAISS CER FN,FN,CP-FN,Attique,habitat,,,,4,,,,,,,,0,4,0,0,4,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-8.490278,47.349722,Suisse,canton de Zurig,Zurig,Uetliberg,Uto-Kulm,Ceramique grecque,VAISS CER FN,FN,CRAT-FN,colonnette,habitat,,,,1,,,,,,,,0,1,0,0,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-8.49028,47.34972,Suisse,canton de Zurig,Zurig,Üetliberg,Uto-Kulm,Parure Golasecca,PAR Golasecca,SER,S4A GOL,GOL,habitat,,,,2,,,,5,,,,0,2,5,0,7,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+X,Y,Pays,Région,Département,Commune,Lieu_dit,Objet,XXX,Trie,Variante,IMITATION,Contexte,Golasecca_IC_IIA,Golasecca_IIA_IIAB,Golasecca_IIAB_IIB,Golasecca_IIB,Golasecca_IIIA1,Golasecca_IIIA1_IIIA2,Golasecca_IIIA2,Golasecca_IIIA2_IIIA3,Golasecca_IIIA3,Hallstatt_D,La_Tene_A,GIC_IIAB_670_530,GIIAB_IIIA1_530_450,GIIIA1_IIIA3_450_420,GIIIA3_420_380,TOTAL
+8.490278,47.349722,Suisse,canton de Zurig,Zurig,Uetliberg,Uto-Kulm,Ceramique grecque,VAISS CER FN,FN,CP-FN,Attique,habitat,,,,4,,,,,,,,0,4,0,0,4
+8.490278,47.349722,Suisse,canton de Zurig,Zurig,Uetliberg,Uto-Kulm,Ceramique grecque,VAISS CER FN,FN,CRAT-FN,colonnette,habitat,,,,1,,,,,,,,0,1,0,0,1
+8.49028,47.34972,Suisse,canton de Zurig,Zurig,Üetliberg,Uto-Kulm,Parure Golasecca,PAR Golasecca,SER,S4A GOL,GOL,habitat,,,,2,,,,5,,,,0,2,5,0,7
