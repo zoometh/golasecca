@@ -28,10 +28,10 @@ output:
 ---
 [![DOI](https://zenodo.org/badge/312086763.svg)](https://zenodo.org/badge/latestdoi/312086763)
 &nbsp;
-  
+
 &nbsp;
-  
-  
+
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, fig.width = 10, fig.height = 10, fig.align = "center")
 # library(XLConnect)
@@ -52,8 +52,10 @@ library(sf)
 library(sp)
 library(downloadthis)
 
-chm <-"F:\\Collaborations et concours\\Colloques, seminaires, articles\\170427 CTHS\\data_13.xlsx"
-chm.sig <-"F:\\Collaborations et concours\\Colloques, seminaires, articles\\170427 CTHS\\SIG"
+getwd()
+
+chm <- paste0(getwd(), "/data/data_13.xlsx") #"F:\\Collaborations et concours\\Colloques, seminaires, articles\\170427 CTHS\\data_13.xlsx"
+chm.sig <- paste0(getwd(), "/data") # "F:\\Collaborations et concours\\Colloques, seminaires, articles\\170427 CTHS\\SIG"
 map1.url <- "https://qgiscloud.com/VGChilde/gic_iiab"
 publi.url <- "https://halshs.archives-ouvertes.fr/halshs-02314978/document"
 
@@ -292,7 +294,10 @@ f.ggraph  <- function(df.per,obj.colors){
 #   return(aPeriod)
 # }
 
-f.lflt.per <- function(chm.doss,tab,per){
+f.lflt.per <- function(chm.doss,
+                       tab,
+                       per,
+                       export.to = NA){
   tab.per <- tab[tab[,per] > 0,]
   sit.per <- tab.per[, c("x", "y", "num","sites", "objets", "contexte.site")]
   sit.per <- sit.per[complete.cases(sit.per), ]
@@ -350,7 +355,11 @@ f.lflt.per <- function(chm.doss,tab,per){
     addLayersControl(
       baseGroups = c('Stamen', 'Topo', 'OSM')) %>%
     addScaleBar(position = "bottomleft")
-  return(aPeriod)
+  if(!is.na(export.to)){
+    htmlwidgets::saveWidget(aPeriod, export.to)
+  } else {
+    return(aPeriod)
+  }
 }
 
 f.leafIcons <- function(sit.per){
@@ -370,7 +379,7 @@ f.leafIcons <- function(sit.per){
   return(leafIcons)
 }
 ```
-  
+
 Cette page web reprend les éléments d'une étude réalisée dans le cadre du LabEx ARCHIMEDE^[Ce travail a bénéficié du soutien du LabEx ARCHIMEDE au titre du programme "Investir L'Avenir" ANR-11-LABX-0032-01, [https://archimede.cnrs.fr/](https://archimede.cnrs.fr/)] et d'un article paru aux éditions du CTHS [@Cicolani19]. Adossée au colloque du CTHS [*La conquête de la montagne : des premières occupations humaines à l’anthropisation du milieu*](https://cths.fr/ed/edition.php?id=7737), notre étude portait sur la distribution spatiale et les associations entre différentes classes de mobilier au cours du premier âge du Fer dans les Alpes centrales. Notre intention était de faire un essai de modélisation des réseaux d'échanges en nous servant de deux heuristiques: le réseau des plus courts chemins théorique et la modélisation des présences/absences de tel ou tel type de mobilier avec le tracé de graphes. Cette modélisation nous avait permis de synthétiser l'information portant sur plus de 250 sites et 2,000 objets. 
 
 Nous avons voulu poursuivre cette modélisation en développant les aspects web et interactifs. Cette page web est issue d'un document *opensource* [Rmarkdown](https://rmarkdown.rstudio.com/) hebergé sur [GitHub](https://github.com/). Nous y reprenons des [éléments de notre étude](#etude) et nous nous intéressons à comment nos résultats peuvent être référencés, rendus accessibles, rendus interopérables et réutilisables dans un contexte de développement de l' [Open Science](#openscience)  
@@ -396,7 +405,7 @@ L'étude porte sur la distribution de deux principales classes d’objets :
 * classe ***'`r obj.personnels`'***: les parures nord-italiques de type Golasecca, objets ordinaires et personnels issus d’interactions à courte et moyenne distance
 
 * classe: ***'`r obj.collectifs`'***: les importations méditerranéennes, objets à valeur ajoutée liés à des réseaux collectifs agissant à plus longue distance
-  
+
 
 ```{r effectifs, echo=FALSE, warning=FALSE, fig.width=8, fig.height= 5, fig.align="center"}
 # TODO add href in x axis
@@ -437,7 +446,7 @@ fig.count <- tab.count.melt %>%
           hovertext = ~lbl,
           name = ~objets,
           marker = list(color = ~rgb)) %>%
-          # color = ~rgb) %>%
+  # color = ~rgb) %>%
   add_annotations(x=period.objets.sums$period,
                   y=period.objets.sums$x,
                   # TODO: rm arrow
@@ -550,7 +559,8 @@ Répartition des sites durant le Golasecca IC-IIAB (670-530 avant J.-C.)
 # df.per <- df.per[, c("num", "sites","objets","contexte.forme.ply","contexte.couleur","contexte.site" )]
 # htmltools::includeHTML(paste0(getwd(),"/img/site_GIC_IIAB.html"))
 # for(per in c("GIC_IIAB","GIIAB_IIIA1","GIIIA1_IIIA3","GIIIA3")){
-f.lflt.per(getwd(),tab,"GIC_IIAB") # create leaflet html map 
+f.lflt.per(getwd(), tab, "GIC_IIAB", 
+           export.to = paste0(getwd(), "/img/map_GIC_IIAB.html")) # create/export leaflet html map 
 
 # f.lflt.per(getwd(),tab,"GIC_IIAB") # create leaflet html map 
 
@@ -564,6 +574,7 @@ data <- f.data(chm)
 tab <- cbind(data,chrono) # associe les tableaux
 df.per <- f.a.period(tab,site.type,"GIC_IIAB") # subset # période 1
 fig <- f.ggraph(df.per,obj.colors)
+htmlwidgets::saveWidget(fig, paste0(getwd(), "/img/graph_GIC_IIAB.html"))
 fig
 ```
 
